@@ -1,0 +1,62 @@
+{
+  "app": {
+    "name": "AI For ALL",
+    "version": "1.0.0",
+    "build": "chennai-hackathon-2026"
+  },
+  "features": {
+    "on_device_llm": true,
+    "offline_mode": true,
+    "tamil_support": true,
+    "gps_enabled": true,
+    "tts_enabled": true,
+    "vibration_feedback": true,
+    "web_browsing": true,
+    "voice_assistant": true,
+    "shake_wake_word": true,
+    "high_contrast": false,
+    "large_text": false,
+    "accessibility_mode": true
+  },
+  "voice_assistant": {
+    "wake_word": "hey assistant",
+    "wake_word_ta": "ஹேಯ் அசிஸ்டண்ட்",
+    "listen_timeout_seconds": 10,
+    "pause_timeout_seconds": 3,
+    "confidence_threshold": 0.7,
+    "continuous_listening": true,
+    "shake_threshold": 15.0
+  },
+  "model": {
+    "name": "gemma-2b-it",
+    "path": "assets/models/gemma-2b-it-q4.tflite",
+    "vocab_path": "assets/models/tokenizer.model",
+    "max_tokens": 512,
+    "temperature": 0.7,
+    "top_p": 0.9
+  },
+  "camera": {
+    "resolution": "high",
+    "formats": ["jpeg"],
+    "max_size_mb": 5
+  },
+  "gps": {
+    "accuracy_threshold_high": 10,
+    "accuracy_threshold_medium": 50,
+    "update_interval_ms": 1000,
+    "cache_duration_seconds": 30
+  },
+  "cache": {
+    "max_entries": 50,
+    "max_age_days": 7,
+    "preload_test_images": true
+  },
+  "demo": {
+    "preloaded_images": [
+      "assets/images/test_food.jpg",
+      "assets/images/test_document.jpg",
+      "assets/images/test_text.jpg"
+    ],
+    "cached_responses": true
+  }
+}

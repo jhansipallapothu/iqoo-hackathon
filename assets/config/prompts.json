@@ -1,0 +1,28 @@
+{
+  "modes": {
+    "explore": {
+      "en": "Describe this image in detail. What do you see?",
+      "ta": "இதை விவரமாக விவரிக்கவும். நீங்கள் என்ன দেখுகிறீர்கள்?"
+    },
+    "food": {
+      "en": "Identify this food item. List ingredients, allergens, and nutritional info.",
+      "ta": "இந்த உணவு பொருளை அடையாளம் காணுங்கள். கூறுகள், ஆலர்ஜிகள், ஊட்டச்சத்து தகவல்களை பட்டியலிடுங்கள்."
+    },
+    "text": {
+      "en": "Extract and read all text from this image. Preserve formatting.",
+      "ta": "இதிலிருந்து அனைத்து உரையையும் விச اليابانيして 読み取り、 வடிவமைப்பைப் பாதுகாத்து வைக்கவும்."
+    },
+    "document": {
+      "en": "Analyze this document. Summarize key information, dates, amounts, and action items.",
+      "ta": "இந்த ஆவணத்து�்த novi முக்கிய தகவல்கள், தேதிகள், தொகைகள், செயல் 항் items まとめ してください。"
+    }
+  },
+  "location_context": {
+    "en": "Location context: {address} (GPS: {lat}, {lon}, accuracy: {accuracy}m)",
+    "ta": "இடம் சூழல்: {address} (GPS: {lat}, {lon}, துல்லியம்: {accuracy}m)"
+  },
+  "offline_fallback": {
+    "en": "AI processing requires internet. Showing cached result.",
+    "ta": "AI செயலாக்கம் இணையத்தைக் கேட்கிறது. சேமített முடிவைக் காட்டுகிறது."
+  }
+}

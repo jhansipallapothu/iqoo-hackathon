@@ -1,0 +1,45 @@
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+// Force a consistent JVM target (17) across every module. Older Flutter plugins
+// (flutter_tts, flutter_sound, dash_chat_2 ...) pin Java to 1.8 in their own
+// build.gradle while Kotlin 2.x compiles to 17, which AGP 8.11 rejects.
+// Registered BEFORE the evaluationDependsOn block below so afterEvaluate is legal.
+subprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty("android")) {
+            project.android {
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_17
+                    targetCompatibility JavaVersion.VERSION_17
+                }
+            }
+        }
+        project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+            compilerOptions {
+                jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+            }
+        }
+        // Old plugins (video_player_android ...) set -Werror; a deprecation
+        // warning from a newer SDK then fails their build. Strip it.
+        project.tasks.withType(JavaCompile).configureEach {
+            options.compilerArgs.removeAll { it == "-Werror" }
+        }
+    }
+}
+
+rootProject.buildDir = "../build"
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+subprojects {
+    project.evaluationDependsOn(":app")
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}
