@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:convert';
@@ -10,6 +11,7 @@ import '../services/ai_service.dart';
 import '../services/localization_service.dart';
 import '../services/offline_cache_service.dart';
 import '../services/config_service.dart';
+import '../services/hardware_keys.dart';
 
 class Chatscreen extends StatefulWidget {
   final String? imagePath;
@@ -33,7 +35,8 @@ class _ChatscreenState extends State<Chatscreen> {
   final OfflineCacheService _cacheService = OfflineCacheService();
   final ConfigService _configService = ConfigService();
   final FlutterTts _tts = FlutterTts();
-  
+  StreamSubscription<String>? _keySub;
+
   List<ChatMessage> messages = [];
   bool _isLoading = false;
   String? _lastAIResponse;
@@ -49,6 +52,10 @@ class _ChatscreenState extends State<Chatscreen> {
   @override
   void initState() {
     super.initState();
+    // Either volume key re-speaks the last answer while this screen is open.
+    _keySub = HardwareKeys.stream.listen((_) {
+      if (ModalRoute.of(context)?.isCurrent ?? true) _speakLastResponse();
+    });
     _initializeServices();
     if (widget.imagePath != null) {
       _computeImageHash(widget.imagePath!);
@@ -338,12 +345,14 @@ class _ChatscreenState extends State<Chatscreen> {
 
   Future<void> _speakLastResponse() async {
     if (_lastAIResponse == null) return;
+    SpokenText.last = _lastAIResponse; // so Home's Volume-Down repeats it too
     await _tts.stop();
     await _tts.speak(_lastAIResponse!);
   }
 
   @override
   void dispose() {
+    _keySub?.cancel();
     _tts.stop();
     super.dispose();
   }

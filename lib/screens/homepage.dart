@@ -16,6 +16,7 @@ import '../services/ai_service.dart';
 import '../services/offline_cache_service.dart';
 import '../services/voice_assistant_service.dart';
 import '../services/sms_service.dart';
+import '../services/hardware_keys.dart';
 import '../widgets/debug_overlay.dart';
 import 'chatscreen.dart';
 import 'settings_screen.dart';
@@ -43,7 +44,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final VoiceAssistantService _voiceAssistant = VoiceAssistantService();
   final Connectivity _connectivity = Connectivity();
   final FlutterTts _tts = FlutterTts();
-  
+  StreamSubscription<String>? _keySub;
+
   Position? _currentPosition;
   String? _currentAddress;
   bool _isGPSEnabled = false;
@@ -64,7 +66,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _keySub = HardwareKeys.stream.listen((k) {
+      // Only the visible screen reacts (chat screen sits on top of this one).
+      if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
+      if (k == 'volume_up') {
+        if (!_isProcessing) _takePicture();
+      } else if (k == 'volume_down') {
+        _repeatSpoken();
+      }
+    });
     _initializeAll();
+  }
+
+  void _repeatSpoken() {
+    final text = SpokenText.last;
+    if (text == null || text.isEmpty) {
+      _announceReady();
+    } else {
+      _tts.stop();
+      _tts.speak(text);
+    }
   }
 
   Future<void> _initializeAll() async {
@@ -209,10 +230,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           _localization.isTamil ? 'ta-IN' : 'en-US');
       if (ok != 1) await _tts.setLanguage('en-US');
       await _tts.setSpeechRate(0.5);
-      await _tts.speak(_localization.isTamil
+      final msg = _localization.isTamil
           ? 'AI அனைவருக்கும் தயார். படம் எடுக்க எங்கும் தட்டவும்.'
           : 'A I For All ready. Tap anywhere to take a photo. '
-              'Swipe left or right to change mode.');
+              'Swipe left or right to change mode.';
+      SpokenText.last = msg;
+      await _tts.speak(msg);
     } catch (_) {}
   }
 
@@ -294,6 +317,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _positionSubscription?.cancel();
     _gpsService.dispose();
     _voiceAssistant.dispose();
+    _keySub?.cancel();
     _tts.stop();
     super.dispose();
   }
