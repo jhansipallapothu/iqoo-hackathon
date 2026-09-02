@@ -82,6 +82,55 @@ class AIService {
     }
   }
 
+  /// Text-only explanation with the first sentence delivered fast. Used by the
+  /// Read & Explain flow: OCR text in, spoken plain-language guidance out.
+  ///
+  /// [onSentence] fires as soon as each sentence is complete so TTS can begin
+  /// before the whole answer generates. Returns the full text, or null on
+  /// failure / timeout so the caller can speak its own fallback.
+  Future<String?> explain(
+    String promptText, {
+    void Function(String sentence)? onSentence,
+    Duration timeout = const Duration(seconds: 6),
+  }) async {
+    // ponytail: on-device path lands here once flutter_gemma is wired; for now
+    // it is the same cloud call, just text-only and sentence-streamed.
+    final buf = StringBuffer();
+    var spokenUpTo = 0;
+
+    void flushSentences() {
+      final text = buf.toString();
+      final re = RegExp(r'[^.!?]*[.!?](\s|$)');
+      for (final m in re.allMatches(text)) {
+        if (m.end <= spokenUpTo) continue;
+        final s = text.substring(spokenUpTo, m.end).trim();
+        if (s.isNotEmpty) onSentence?.call(s);
+        spokenUpTo = m.end;
+      }
+    }
+
+    try {
+      final stream = _gemini
+          .streamGenerateContent(promptText, modelName: 'models/gemini-3.6-flash')
+          .timeout(timeout);
+      await for (final chunk in stream) {
+        final t = chunk.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
+        if (t.isEmpty) continue;
+        buf.write(t);
+        flushSentences();
+      }
+      // Speak any trailing text with no terminator.
+      final rest = buf.toString().substring(spokenUpTo).trim();
+      if (rest.isNotEmpty) onSentence?.call(rest);
+      final full = buf.toString().trim();
+      return full.isEmpty ? null : full;
+    } catch (_) {
+      // Partial output is still useful; hand back whatever arrived.
+      final partial = buf.toString().trim();
+      return partial.isEmpty ? null : partial;
+    }
+  }
+
   bool _shouldBrowse(String prompt) {
     final lowerPrompt = prompt.toLowerCase();
 

@@ -17,6 +17,7 @@ import '../services/speech_config.dart';
 import '../services/emergency_service.dart';
 import '../widgets/debug_overlay.dart';
 import 'chatscreen.dart';
+import 'read_explain_screen.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -373,23 +374,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       }
 
       if (mounted) {
-        // Always-alive camera: suspend the preview stream while the chat screen
+        // Always-alive camera: suspend the preview stream while the next screen
         // is on top (frees CPU during inference) but never close the session —
         // reopening costs 1-2s, resuming is instant.
         _suspendPreview();
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => Chatscreen(
-              imagePath: file.path,
-              prompt: prompt,
-              locationData: locationData,
-            ),
-          ),
-        ).then((_) {
-          _resumePreview();
-          _voiceAssistant.announce('Analysis complete');
-        });
+        // Explore (index 0) = scene description via the chat screen.
+        // Everything else is document text -> two-stage Read & Explain.
+        final Widget next = _selectedIndex == 0
+            ? Chatscreen(
+                imagePath: file.path,
+                prompt: prompt,
+                locationData: locationData,
+              )
+            : ReadExplainScreen(imagePath: file.path);
+        Navigator.push(context, MaterialPageRoute(builder: (_) => next))
+            .then((_) => _resumePreview());
       }
     } catch (e) {
       _showSnackBar('${_localization.tr('error_occurred')}: $e');
