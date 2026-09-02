@@ -1,14 +1,10 @@
 import 'dart:async';
-import 'dart:io';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:camera/camera.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter/services.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:sensors_plus/sensors_plus.dart';
 import '../services/gps_service.dart';
 import '../services/config_service.dart';
 import '../services/localization_service.dart';
@@ -89,35 +85,43 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _initializeAll() async {
-    // Config + localization are all the first frame needs — unblock the UI here.
-    await _configService.initialize();
-    await _localization.initialize();
-    if (mounted) setState(() {});
-
-    _listenConnectivity();
-    _initializeGPS();
-
+    // Camera is the only thing the user is actually waiting to see, so start it
+    // first and don't await it — the rest runs alongside instead of behind it.
     if (widget.camera != null) {
       _initializeCamera();
-    } else {
+    } else if (mounted) {
       setState(() {
         _showCameraError = true;
         _initialized = true;
       });
     }
 
-    // Slow / permission-prompting init runs after the UI is up so a hang here
-    // (e.g. waiting on the mic permission dialog) never freezes the screen.
-    await _cacheService.initialize();
-    _loadAccessibilitySettings();
-    await _aiService.initialize();
-    SmsService().initialize(); // read incoming OTP/spam/txn SMS aloud
+    // Config + localization gate the first frame. Run them together.
+    await Future.wait([
+      _configService.initialize(),
+      _localization.initialize(),
+    ]);
+    if (mounted) setState(() {});
+
+    // Everything below is off the critical path — kick it all off concurrently
+    // and let each finish whenever. None of it blocks a frame.
+    _listenConnectivity();
+    _initializeGPS();
     _setupVoiceAssistantCallbacks(); // wire onError BEFORE init so failures surface
-    try {
-      await _voiceAssistant.initialize();
-    } catch (e) {
-      debugPrint('Voice assistant init failed: $e');
-    }
+
+    unawaited(_cacheService
+        .initialize()
+        .then((_) => _loadAccessibilitySettings())
+        .catchError((e) => debugPrint('Cache init failed: $e')));
+    unawaited(_aiService
+        .initialize()
+        .catchError((e) => debugPrint('AI init failed: $e')));
+    unawaited(SmsService()
+        .initialize()
+        .catchError((e) => debugPrint('SMS init failed: $e')));
+    unawaited(_voiceAssistant
+        .initialize()
+        .catchError((e) => debugPrint('Voice assistant init failed: $e')));
   }
 
   void _setupVoiceAssistantCallbacks() {
@@ -285,9 +289,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _initializeCamera() async {
     if (widget.camera == null) return;
 
+    // medium is plenty for a VLM prompt and initialises noticeably faster than
+    // high; audio off since we never record video.
     _cameraController = CameraController(
       widget.camera!,
-      ResolutionPreset.high,
+      ResolutionPreset.medium,
+      enableAudio: false,
     );
 
     try {
@@ -326,10 +333,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (_cameraController == null || !_cameraController!.value.isInitialized) return;
     if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
-      _cameraController!.pausePreview();
+      _suspendPreview();
       if (_voiceAssistantActive) _voiceAssistant.stopListening();
     } else if (state == AppLifecycleState.resumed) {
-      _cameraController!.resumePreview();
+      // Only resume if we're the visible route — otherwise the chat screen is
+      // still on top and the preview should stay suspended.
+      if (ModalRoute.of(context)?.isCurrent ?? true) _resumePreview();
       if (_voiceAssistantActive) _voiceAssistant.startListening();
     }
   }
@@ -368,6 +377,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       }
 
       if (mounted) {
+        // Always-alive camera: suspend the preview stream while the chat screen
+        // is on top (frees CPU during inference) but never close the session —
+        // reopening costs 1-2s, resuming is instant.
+        _suspendPreview();
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -377,13 +390,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               locationData: locationData,
             ),
           ),
-        ).then((_) => _voiceAssistant.announce('Analysis complete'));
+        ).then((_) {
+          _resumePreview();
+          _voiceAssistant.announce('Analysis complete');
+        });
       }
     } catch (e) {
       _showSnackBar('${_localization.tr('error_occurred')}: $e');
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
+  }
+
+  bool _previewSuspended = false;
+
+  void _suspendPreview() {
+    final c = _cameraController;
+    if (c == null || !c.value.isInitialized || _previewSuspended) return;
+    _previewSuspended = true;
+    c.pausePreview();
+  }
+
+  void _resumePreview() {
+    final c = _cameraController;
+    if (c == null || !c.value.isInitialized || !_previewSuspended) return;
+    _previewSuspended = false;
+    c.resumePreview();
   }
 
   String _buildPrompt() {
