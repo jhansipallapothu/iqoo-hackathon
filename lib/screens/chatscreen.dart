@@ -12,6 +12,7 @@ import '../services/localization_service.dart';
 import '../services/offline_cache_service.dart';
 import '../services/config_service.dart';
 import '../services/hardware_keys.dart';
+import '../services/speech_config.dart';
 
 class Chatscreen extends StatefulWidget {
   final String? imagePath;
@@ -73,14 +74,7 @@ class _ChatscreenState extends State<Chatscreen> {
 
   Future<void> _setupTTS() async {
     await _tts.awaitSpeakCompletion(true);
-    // en-US voice data ships with Google TTS everywhere; en-IN is often a
-    // network-only voice that silently produces no audio.
-    final ok = await _tts.setLanguage(
-        _localization.currentLocale == 'ta' ? 'ta-IN' : 'en-US');
-    if (ok != 1) await _tts.setLanguage('en-US');
-    await _tts.setSpeechRate(0.5);
-    await _tts.setVolume(1.0);
-    await _tts.setPitch(1.0);
+    await SpeechConfig.apply(_tts, tamil: _localization.isTamil);
   }
 
   void _computeImageHash(String path) {

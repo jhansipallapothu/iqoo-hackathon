@@ -4,6 +4,7 @@ import 'package:another_telephony/telephony.dart' hide SmsType;
 import 'localization_service.dart';
 import 'config_service.dart';
 import 'sms_classifier.dart';
+import 'speech_config.dart';
 
 /// Reads incoming SMS aloud for blind users, tagged by type.
 ///
@@ -29,8 +30,7 @@ class SmsService {
     final granted = await Permission.sms.request();
     if (!granted.isGranted) return;
 
-    await _tts.setLanguage(_localization.isTamil ? 'ta-IN' : 'en-US');
-    await _tts.setSpeechRate(0.5);
+    await SpeechConfig.apply(_tts, tamil: _localization.isTamil);
 
     _telephony.listenIncomingSms(
       onNewMessage: (SmsMessage msg) =>

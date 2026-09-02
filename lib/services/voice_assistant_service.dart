@@ -10,6 +10,7 @@ import '../services/gps_service.dart';
 import '../services/localization_service.dart';
 import '../services/config_service.dart';
 import '../services/browsing_service.dart';
+import '../services/speech_config.dart';
 
 enum VoiceCommandType {
   captureImage,
@@ -200,13 +201,7 @@ class VoiceAssistantService {
   }
 
   Future<void> _setupTTS() async {
-    final ok = await _tts.setLanguage(
-        _localization.currentLocale == 'ta' ? 'ta-IN' : 'en-US');
-    if (ok != 1) await _tts.setLanguage('en-US');
-    await _tts.setSpeechRate(0.5);
-    await _tts.setVolume(1.0);
-    await _tts.setPitch(1.0);
-    
+    await SpeechConfig.apply(_tts, tamil: _localization.isTamil);
     // Small pause before speaking (milliseconds)
     await _tts.setSilence(50);
   }

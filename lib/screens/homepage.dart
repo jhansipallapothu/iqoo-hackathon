@@ -13,6 +13,7 @@ import '../services/offline_cache_service.dart';
 import '../services/voice_assistant_service.dart';
 import '../services/sms_service.dart';
 import '../services/hardware_keys.dart';
+import '../services/speech_config.dart';
 import '../widgets/debug_overlay.dart';
 import 'chatscreen.dart';
 import 'settings_screen.dart';
@@ -230,10 +231,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _announceReady() async {
     if (!_configService.appConfig.features.ttsEnabled) return;
     try {
-      final ok = await _tts.setLanguage(
-          _localization.isTamil ? 'ta-IN' : 'en-US');
-      if (ok != 1) await _tts.setLanguage('en-US');
-      await _tts.setSpeechRate(0.5);
+      await SpeechConfig.apply(_tts, tamil: _localization.isTamil);
       final msg = _localization.isTamil
           ? 'AI அனைவருக்கும் தயார். படம் எடுக்க எங்கும் தட்டவும்.'
           : 'A I For All ready. Tap anywhere to take a photo. '
