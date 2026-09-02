@@ -2,7 +2,11 @@
 
 **User:** blind and low-vision people (also serves low-literacy and elderly users — same flow, no extra build).
 
-**What it does that Lookout / Seeing AI / Be My Eyes do not:** they *read text aloud*. We **explain what it means and what to do next** — on-device, offline, in Tamil or English.
+**Language: English only.** Scope decision — one language done well. Gemma 2B's non-English generation is weak, and the explanation layer is the whole product, so a second language would degrade the thing that differentiates us.
+
+**What it does that Lookout / Seeing AI / Be My Eyes do not:** they *read text aloud*. We **explain what it means and what to do next** — on-device and offline.
+
+That distinction now carries the entire pitch, so state it in those terms every time: **comprehension, not transcription.** Lookout will read "PARACETAMOL IP 650mg" off a strip. It will not tell you that is a fever tablet, that four a day is the ceiling, or that it expired last month.
 
 > Point at a medicine strip → *"Crocin 650. Paracetamol, for fever and pain. Maximum four tablets a day. Expires January 2026."*
 >
@@ -46,7 +50,7 @@ Both on-device. Gemma 2B is explicitly named by the organisers as supported, is 
 
 1. Does `flutter_gemma` actually place Gemma 2B on the **Hexagon NPU**, or silently fall back to GPU/CPU?
 2. **Benchmark `.npu` / `.gpu` / `.cpu`.** The VisionAId paper (arXiv 2607.02371) measured NNAPI at >4200 ms vs ~500 ms CPU-only on some chipsets — unsupported operators. NPU is not automatically faster.
-3. **ML Kit OCR accuracy on Tamil script**, on a printed notice, under normal phone lighting. Tamil is supported; real-world accuracy is the open question.
+3. **ML Kit OCR accuracy on real printed material** — a medicine strip (tiny type, foil glare) and a notice, under normal phone lighting. Clean digital text is not the test.
 4. Peak RAM with the model loaded *and* the camera pipeline running.
 5. Check **Qualcomm AI Hub** for pre-optimised Snapdragon weights before quantising anything ourselves.
 
@@ -119,12 +123,12 @@ Assume one live failure. The fast path carries it.
 
 **0:15–0:40** — Volume Up. Haptic + shutter fire instantly. OCR speaks within a second: *"Crocin 650mg. Expiry 01/2026."* Gemma 2B then streams: *"Paracetamol, for fever and pain. Maximum four tablets a day."*
 
-**0:40–1:05** — A Tamil government notice. Volume Up. OCR reads the Tamil; the model simplifies it: *"Ration card applications open September 20. Bring Aadhaar and income proof."*
+**0:40–1:05** — A government notice or utility bill. Volume Up. OCR reads the dense official wording; the model reduces it to the action: *"Ration card applications open September 20. Bring Aadhaar and income proof."* Say the contrast out loud here — *"a screen reader would have read you four paragraphs of that."*
 *If the model stalls here:* "The OCR answer was already spoken — Volume Down repeats the last safe answer. The user is never left in silence." **The failure becomes a feature demonstration.**
 
 **1:05–1:20** — Shake to repeat. Note that every control is a physical gesture: no button to find, nothing to see.
 
-**1:20–1:30** — *"Everything you heard ran on this phone. OCR, the language model, Tamil speech. No cloud, no Wi-Fi — so it works in a village with no connectivity. And it doesn't just read the label. It tells you what the label means."*
+**1:20–1:30** — *"Everything you heard ran on this phone. OCR, the language model, the speech. No cloud, no Wi-Fi, no subscription — so it works anywhere, on a phone someone already owns. And it doesn't just read the label. It tells you what the label means."*
 
 ---
 
@@ -133,7 +137,7 @@ Assume one live failure. The fast path carries it.
 | Criterion | Weight | Covered by |
 | --- | --- | --- |
 | End product quality | 30% | Two-stage architecture with a guaranteed floor; small scope, finished |
-| Novelty & impact | 20% | Explains rather than reads; offline Tamil; medicine and government-notice comprehension |
+| Novelty & impact | 20% | Explains rather than reads — medicine dosage, expiry, what a notice requires you to do |
 | Creative phone use | 15% | Volume keys, ASSIST, shake, torch, haptics, camera, mic, GPS |
 | Technical depth | 15% | On-device OCR + LLM pipeline, streaming TTS, timeout/fallback design, NPU benchmarking |
 | Office Kit usage | 10% | Continuous use during Green Light |
@@ -146,7 +150,7 @@ Assume one live failure. The fast path carries it.
 - [ ] Sept 4: run the spike above; record real numbers
 - [ ] Fix TTS rate 0.5 → 1.3× and add feedback de-duplication
 - [ ] Build the two-stage pipeline; verify the fallback by killing the LLM deliberately
-- [ ] Test ML Kit OCR on real Tamil printed material
+- [ ] Test ML Kit OCR on a real medicine strip and a real printed notice
 - [ ] USB stick with Gemma 2B, Phi-3-mini, SmolVLM-500M, Gemma 3n E2B/E4B (~9 GB) — venue wifi will not carry this
 - [ ] Verify `flutter build apk --release` (only debug tested so far)
 - [ ] Find one blind tester for 20 minutes before Sept 12 — worth more than any feature
