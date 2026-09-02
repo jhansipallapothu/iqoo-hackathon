@@ -6,6 +6,7 @@ import '../services/localization_service.dart';
 import '../services/ai_service.dart';
 import '../services/offline_cache_service.dart';
 import '../services/voice_assistant_service.dart';
+import '../services/emergency_service.dart';
 import '../widgets/debug_overlay.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -36,6 +37,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _accessibilityMode = false;
   bool _debugOverlay = false;
   String _locale = 'en';
+  String? _emergencyContact;
   Map<String, dynamic>? _cacheStats;
   bool _loading = true;
 
@@ -70,6 +72,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _locale = _localization.currentLocale;
       _loading = false;
     });
+    final contact = await EmergencyService.getContact();
+    if (mounted) setState(() => _emergencyContact = contact);
     await _loadCacheStats();
   }
 
@@ -148,6 +152,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _testVoiceAssistant() async {
     _voiceAssistant.announce('Voice assistant test successful. All systems operational.');
+  }
+
+  Future<void> _setEmergencyContact() async {
+    final controller =
+        TextEditingController(text: await EmergencyService.getContact() ?? '');
+    if (!mounted) return;
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(_locale == 'ta' ? 'அவசர தொடர்பு' : 'Emergency contact'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.phone,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: '+91…',
+            helperText: _locale == 'ta'
+                ? 'நம்பகமான நபரின் எண். அவசர சேவைகள் அல்ல.'
+                : 'A person you trust — not emergency services.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(_locale == 'ta' ? 'ரத்து' : 'Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: Text(_locale == 'ta' ? 'சேமி' : 'Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == null || result.isEmpty) return;
+    await EmergencyService.setContact(result);
+    await EmergencyService.ensurePermission();
+    if (!mounted) return;
+    setState(() => _emergencyContact = result);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Emergency contact set to $result')),
+    );
   }
 
   Future<void> _setWakeWord() async {
@@ -311,6 +357,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     value: _gpsEnabled,
                     onChanged: (v) => _toggleFeature('gps_enabled', v),
                     leading: Icon(_gpsEnabled ? Icons.gps_fixed : Icons.gps_off, color: _gpsEnabled ? Colors.green : Colors.grey),
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.emergency_share,
+                        color: _emergencyContact == null ? Colors.grey : Colors.red),
+                    title: Text(isTamil ? 'அவசர தொடர்பு' : 'Emergency contact'),
+                    subtitle: Text(_emergencyContact ??
+                        (isTamil
+                            ? 'அமைக்கப்படவில்லை — நீண்ட அழுத்தம் அழைக்கும்'
+                            : 'Not set — long-press the camera to call')),
+                    onTap: _setEmergencyContact,
+                    trailing: const Icon(Icons.edit, color: Colors.blue),
                   ),
                 ]),
                 _buildSection(isTamil ? 'அதிகமொழி' : 'Advanced', [

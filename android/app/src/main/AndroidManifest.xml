@@ -12,6 +12,7 @@
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"/>
     <uses-permission android:name="android.permission.RECEIVE_SMS"/>
     <uses-permission android:name="android.permission.READ_SMS"/>
+    <uses-permission android:name="android.permission.CALL_PHONE"/>
 
 
     <application
@@ -74,6 +75,11 @@
         </intent>
         <intent>
             <action android:name="android.speech.tts.engine.CHECK_TTS_DATA"/>
+        </intent>
+        <!-- so ACTION_DIAL fallback can resolve a dialler on Android 11+ -->
+        <intent>
+            <action android:name="android.intent.action.DIAL"/>
+            <data android:scheme="tel"/>
         </intent>
     </queries>
 </manifest>

@@ -14,6 +14,7 @@ import '../services/voice_assistant_service.dart';
 import '../services/sms_service.dart';
 import '../services/hardware_keys.dart';
 import '../services/speech_config.dart';
+import '../services/emergency_service.dart';
 import '../widgets/debug_overlay.dart';
 import 'chatscreen.dart';
 import 'settings_screen.dart';
@@ -41,7 +42,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final VoiceAssistantService _voiceAssistant = VoiceAssistantService();
   final Connectivity _connectivity = Connectivity();
   final FlutterTts _tts = FlutterTts();
+  final EmergencyService _emergency = EmergencyService();
   StreamSubscription<String>? _keySub;
+  int? _emergencyCountdown;
 
   Position? _currentPosition;
   String? _currentAddress;
@@ -66,6 +69,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _keySub = HardwareKeys.stream.listen((k) {
       // Only the visible screen reacts (chat screen sits on top of this one).
       if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
+      // Any key aborts a pending emergency call before doing anything else.
+      if (_emergency.isCountingDown) {
+        _cancelEmergency();
+        return;
+      }
       if (k == 'volume_up') {
         if (!_isProcessing) _takePicture();
       } else if (k == 'volume_down') {
@@ -190,26 +198,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _triggerEmergencySOS() async {
-    _voiceAssistant.announce('Emergency SOS activated. Vibrating and announcing location.');
     HapticFeedback.heavyImpact();
-    await _announceLocationByVoice();
-    _showSnackBar('EMERGENCY SOS TRIGGERED');
+    setState(() => _emergencyCountdown = EmergencyService.countdownSeconds);
+    await _emergency.trigger(onTick: (s) {
+      if (mounted) setState(() => _emergencyCountdown = s > 0 ? s : null);
+    });
   }
 
-  Future<void> _announceLocationByVoice() async {
-    final position = _gpsService.getLastKnownPosition();
-    final address = _gpsService.getLastKnownAddress();
-    
-    if (position == null) {
-      _voiceAssistant.announce('Location not available');
-      return;
-    }
-
-    final message = _localization.isTamil
-        ? 'அவசரம்! நீங்கள் $address இல் உள்ளீர்கள். அகசதுவரம்: ${position.latitude.toStringAsFixed(6)}, நெடுசதுவரம்: ${position.longitude.toStringAsFixed(6)}.'
-        : 'Emergency! You are at $address. Latitude: ${position.latitude.toStringAsFixed(6)}, Longitude: ${position.longitude.toStringAsFixed(6)}.';
-    
-    _voiceAssistant.announce(message, interrupt: true);
+  Future<void> _cancelEmergency() async {
+    await _emergency.cancel();
+    if (mounted) setState(() => _emergencyCountdown = null);
   }
 
   void _loadAccessibilitySettings() async {
@@ -741,7 +739,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               : 'Tap anywhere to take a photo',
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: _isProcessing ? null : _takePicture,
+            onTap: () {
+              if (_emergency.isCountingDown) {
+                _cancelEmergency();
+              } else if (!_isProcessing) {
+                _takePicture();
+              }
+            },
+            // Long-press is the eyes-free way to reach emergency without voice.
+            onLongPress: _triggerEmergencySOS,
             onHorizontalDragEnd: (d) {
               final v = d.primaryVelocity ?? 0;
               if (v.abs() < 200) return;
@@ -755,7 +761,55 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         if (!isOnline) _buildOfflineBanner(isTamil),
         if (_isProcessing) _buildProcessingOverlay(isTamil),
         _buildVoiceAssistantOverlay(isTamil),
+        if (_emergencyCountdown != null) _buildEmergencyOverlay(isTamil),
       ],
+    );
+  }
+
+  Widget _buildEmergencyOverlay(bool isTamil) {
+    return Positioned.fill(
+      child: Semantics(
+        liveRegion: true,
+        button: true,
+        label: isTamil
+            ? 'அவசர அழைப்பு $_emergencyCountdown வினாடிகளில். ரத்து செய்ய தட்டவும்.'
+            : 'Emergency call in $_emergencyCountdown seconds. Tap to cancel.',
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _cancelEmergency,
+          child: Container(
+            color: Colors.red.withValues(alpha: 0.85),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '$_emergencyCountdown',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 96 * _textScaleFactor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Text(
+                    isTamil
+                        ? 'அவசர தொடர்பை அழைக்கிறது.\nரத்து செய்ய எங்கும் தட்டவும்.'
+                        : 'Calling your emergency contact.\nTap anywhere to cancel.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20 * _textScaleFactor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
