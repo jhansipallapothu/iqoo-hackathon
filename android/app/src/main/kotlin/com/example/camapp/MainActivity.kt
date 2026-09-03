@@ -55,6 +55,26 @@ class MainActivity : FlutterActivity() {
                             result.success(true)
                         }
                     }
+                    // Opens the system "Digital assistant app" picker so the user
+                    // can set AIFORALL as the assistant (power-button-hold launch).
+                    "openAssistSettings" -> {
+                        val tries = listOf(
+                            "android.settings.VOICE_INPUT_SETTINGS",
+                            android.provider.Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS,
+                            android.provider.Settings.ACTION_SETTINGS,
+                        )
+                        var opened = false
+                        for (action in tries) {
+                            try {
+                                startActivity(
+                                    Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                )
+                                opened = true
+                                break
+                            } catch (_: Exception) { /* try the next one */ }
+                        }
+                        result.success(opened)
+                    }
                     "hasCallPermission" -> result.success(hasCallPermission())
                     "requestCallPermission" -> {
                         ActivityCompat.requestPermissions(

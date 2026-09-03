@@ -6,6 +6,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter/services.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import '../services/assist_setup.dart';
 import '../services/gps_service.dart';
 import '../services/config_service.dart';
 import '../services/localization_service.dart';
@@ -48,6 +49,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final stt.SpeechToText _stt = stt.SpeechToText();
   bool _sttReady = false;
   bool _askingPrompt = false;
+  bool _showOnboarding = false;
+  int _onboardingStep = 0;
   StreamSubscription<String>? _keySub;
   int? _emergencyCountdown;
 
@@ -244,12 +247,68 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void _loadAccessibilitySettings() async {
     final highContrast = await _cacheService.getBool('high_contrast');
     final largeText = await _cacheService.getBool('large_text');
+    final onboarded = await _cacheService.getBool('onboarding_seen');
     if (mounted) {
       setState(() {
         _highContrast = highContrast;
         _largeText = largeText;
         _textScaleFactor = largeText ? 1.5 : 1.0;
+        _showOnboarding = !onboarded;
       });
+      if (_showOnboarding) _speakOnboardingStep();
+    }
+  }
+
+  // --- First-run tutorial -------------------------------------------------
+
+  List<String> get _onboardingSteps => [
+        'Welcome to A I For All. It looks at what your camera sees and tells '
+            'you out loud what it means. Tap anywhere to hear the next tip.',
+        'Point the phone at something and tap anywhere on the screen. It takes '
+            'a photo and reads what is in front of you.',
+        'Double-tap to ask a question first. For example: what is the dose, or '
+            'when does this expire.',
+        'Swipe left or right to switch between two modes. Explore describes a '
+            'scene. Read and Explain reads printed text like medicine or bills.',
+        'Press Volume Up to take a photo. Press Volume Down to repeat the last '
+            'answer. Hold either volume key to change the speaking volume.',
+        'Long-press the screen to call your emergency contact. A countdown '
+            'gives you time to cancel by tapping.',
+        'Last tip. To open this app without looking, set it as your assistant. '
+            'Tap now to open assistant settings, or swipe to finish.',
+      ];
+
+  Future<void> _speakOnboardingStep() async {
+    try {
+      await SpeechConfig.apply(_tts);
+      await _tts.stop();
+      await _tts.speak(_onboardingSteps[_onboardingStep]);
+    } catch (_) {}
+  }
+
+  void _advanceOnboarding() {
+    HapticFeedback.lightImpact();
+    if (_onboardingStep >= _onboardingSteps.length - 1) {
+      _finishOnboarding(openAssist: true);
+      return;
+    }
+    setState(() => _onboardingStep++);
+    _speakOnboardingStep();
+  }
+
+  Future<void> _finishOnboarding({bool openAssist = false}) async {
+    await _cacheService.setBool('onboarding_seen', true);
+    if (mounted) {
+      setState(() {
+        _showOnboarding = false;
+        _onboardingStep = 0;
+      });
+    }
+    if (openAssist) {
+      await _tts.stop();
+      await AssistSetup.openSettings();
+    } else {
+      _announceReady();
     }
   }
 
@@ -258,6 +317,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _announceReady() async {
+    if (_showOnboarding) return; // the tutorial is talking
     if (!_configService.appConfig.features.ttsEnabled) return;
     try {
       await SpeechConfig.apply(_tts);
@@ -369,6 +429,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       // still on top and the preview should stay suspended.
       if (ModalRoute.of(context)?.isCurrent ?? true) _resumePreview();
       if (_voiceAssistantActive) _voiceAssistant.startListening();
+      // Settings can clear this flag to replay the tutorial.
+      if (!_showOnboarding) {
+        _cacheService.getBool('onboarding_seen').then((seen) {
+          if (!seen && mounted) {
+            setState(() {
+              _onboardingStep = 0;
+              _showOnboarding = true;
+            });
+            _speakOnboardingStep();
+          }
+        });
+      }
     }
   }
 
@@ -575,7 +647,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           // horizontal swipe toggles the two modes. Nothing to find by sight.
           child: Scaffold(
             appBar: _buildAppBar(isTamil, isOnline),
-            body: _buildBody(isTamil, isOnline),
+            body: Stack(
+              children: [
+                _buildBody(isTamil, isOnline),
+                if (_showOnboarding) _buildOnboardingOverlay(),
+              ],
+            ),
           ),
         ),
       ),
@@ -897,6 +974,84 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOnboardingOverlay() {
+    final step = _onboardingStep;
+    final total = _onboardingSteps.length;
+    final isLast = step == total - 1;
+    return Positioned.fill(
+      child: Semantics(
+        liveRegion: true,
+        button: true,
+        label: '${_onboardingSteps[step]} '
+            '${isLast ? 'Tap to open settings.' : 'Tap for the next tip.'} '
+            'Swipe to skip the tutorial.',
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _advanceOnboarding,
+          onHorizontalDragEnd: (_) => _finishOnboarding(),
+          onVerticalDragEnd: (_) => _finishOnboarding(),
+          child: Container(
+            color: Colors.black.withValues(alpha: 0.95),
+            padding: const EdgeInsets.fromLTRB(28, 28, 28, 40),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Tip ${step + 1} of $total',
+                  style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700),
+                ),
+                Expanded(
+                  child: Center(
+                    child: SingleChildScrollView(
+                      child: Text(
+                        _onboardingSteps[step],
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 26,
+                          height: 1.35,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    isLast ? 'TAP TO OPEN SETTINGS' : 'TAP FOR NEXT TIP',
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => _finishOnboarding(),
+                  child: const Text(
+                    'Skip tutorial',
+                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

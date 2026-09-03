@@ -367,6 +367,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ]),
                 _buildSection(isTamil ? 'உதவி & கட்டளைகள்' : 'Help & Commands', [
                   ListTile(
+                    leading: const Icon(Icons.school_outlined),
+                    title: const Text('How to use AI For All'),
+                    subtitle: const Text('Replay the spoken tutorial'),
+                    onTap: () async {
+                      await _cacheService.setBool('onboarding_seen', false);
+                      if (mounted) Navigator.pop(context);
+                    },
+                  ),
+                  ListTile(
                     leading: const Icon(Icons.help_outline),
                     title: Text(_localization.tr('help')),
                     subtitle: Text(_localization.tr('help_text')),
