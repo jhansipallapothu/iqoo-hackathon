@@ -58,6 +58,23 @@ phone):
 - peak RAM with the model loaded + camera running
 - check Qualcomm AI Hub for pre-optimised Snapdragon weights
 
+## Shareable APK
+
+```
+flutter build apk --release --split-per-abi
+```
+
+- `android/app/build.gradle` release block has `minifyEnabled=false` +
+  `shrinkResources=false` — R8 fails on ML Kit's CJK/Devanagari text
+  recognisers, which we reference transitively but don't bundle. Re-enabling
+  R8 means adding keep rules for scripts we don't use; not worth it for a
+  test build.
+- Fat APK is ~90 MB. Split gives **`app-arm64-v8a-release.apk` (~38 MB)** —
+  hand testers this one (`armeabi-v7a` ~31 MB is 32-bit-only phones).
+- Output: `build/app/outputs/flutter-apk/` (gitignored).
+- Needs `lib/screens/constapi.dart` present (real Gemini key) or it builds
+  against the keyless `.example`.
+
 ## Known constraints
 
 - Impeller off (`EnableImpeller=false` in manifest) — black-screens old Mali GPUs
