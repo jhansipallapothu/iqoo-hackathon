@@ -1,62 +1,61 @@
-# Handoff — 2026-09-02
+# Handoff — 2026-09-03
 
-Where the project is after a long build session. Read `README.md` for
-architecture, `DEMO_FEATURES.md` for the hackathon plan and demo script.
+Read `README.md` for architecture, `DEMO_FEATURES.md` for the hackathon plan +
+90-sec script, `TASKS.md` for the next-session checklist.
 
 ## Branch
 
-Work is on `feature/blind-first-and-sms`. `main` has only the baseline commit.
+`feature/blind-first-and-sms` (unmerged; `main` = baseline). Recent work:
 
 ```
-6676d3f  Rewrite README for the current architecture
-a19bfe2  Two-stage Read & Explain pipeline (OCR + streamed explanation)
-b5eed21  Scope to English only, repitch on comprehension
-897dae2  Emergency calling with a cancellable countdown
-b96100c  Centralise TTS config, raise speech rate to 1.3
-e8c1883  Fix startup jank + always-alive camera
-b01889e  Blind-first interaction + SMS triage + hardware keys
-4c1b1e8  Baseline: working cloud demo on Android          (main)
+07fc4b9  HANDOFF: shareable split-ABI release APK
+1c7e88e  Disable R8 for release (ML Kit CJK recognisers)
+f671aa3  First-run spoken tutorial + assistant-setup step
+1c7e88e/172bf19  Double-tap to ask a custom question
+834df59  Blind-first UX pass + English-only build
+1beafa8  Fix two rounds of code-review findings (TTS/emergency/OCR/voice)
+97e087d  Voice chat in Explore + speech rate 0.4
+ee15ba5  Device-test fixes: thumbnail decode, OCR text on screen
 ```
 
-## Verified working (on the Redmi, earlier in the session)
+## Verified on the Redmi this session (adb-driven)
 
-Camera → GPS reverse-geocode → cloud Gemini (`gemini-3.6-flash`) description
-→ spoken aloud. Settings screen, mode switching, response cache, debug overlay.
+- Volume-Up capture, no system volume bar; navigates to Read & Explain
+- On-device ML Kit OCR runs; fast-path TTS speaks the result
+- Camera suspend/resume survives backgrounding
+- Mode switch, launch announcement
+- Emergency: long-press → red countdown overlay → tap cancels; `dumpsys
+  telecom` confirmed **no call placed** (tested with a dummy `0000000000`
+  contact injected via `run-as` into `flutter.emergency_contact`)
+- New UX: no bottom nav/FAB, "TAP TO DESCRIBE" pill renders (screenshot)
 
-## Built but NEVER RUN on a device
+## NOT verified — do these first next session
 
-The test phone (Redmi 10 Prime, `adb -s 10145e690506`) died mid-session.
-Everything from `b01889e` onward is compile-checked and APK-build-checked only:
+1. **ML Kit OCR on a real printed medicine strip / notice.** Everything so far
+   was blank surfaces or handwriting, so the slow-path `explain()` has never
+   actually fired. This is the demo's load-bearing unknown.
+2. **Emergency after the `1beafa8` rework** — the spoken preamble is now
+   cancellable (it wasn't; taps during it no-op'd, then the call went
+   through). Re-test: long-press → tap *during* the "your location is…"
+   speech → must abort. Then double-long-press (must not double-dial). Then
+   let one call actually connect to a safe 2nd number.
+3. **First-run tutorial** — fresh install → 7 spoken steps, tap advances,
+   swipe skips, last step opens the assistant picker. Then set AIFORALL as
+   the device Assistant and confirm power-button-hold opens it.
+4. **Everything voice** (double-tap-to-ask, Explore voice chat) needs the
+   **iQOO 15** — `speech_to_text` won't init on the Redmi's MIUI stub
+   recogniser (it announces "not available" and falls back).
+5. SMS triage, camera torch in low light.
 
-- Two-stage Read & Explain pipeline (ML Kit OCR + streamed explanation + cache)
-- Volume keys (native `MainActivity.kt`), tap-anywhere / swipe / long-press
-- Launch announcement, TTS rate 1.3
-- SMS triage
-- Startup-jank fix, camera preview suspend/resume
-- **Emergency calling — places a real phone call. Test the CANCEL path first.**
+## Sept 4 — on-device spike (not started)
 
-## Next session — do these in order
+`ai_service.explain()` is the seam. Swap cloud Gemini → `flutter_gemma` +
+Gemma 2B. On the iQOO 15 (or any Snapdragon phone) measure before committing:
 
-1. **Charge the Redmi. `flutter run -d 10145e690506`.** Walk through the list
-   above. This is the top priority — 8 feature commits with no device run.
-2. **Point ML Kit at a real medicine strip.** Foil, 6pt type, curved. If it
-   can't read that, the medicine demo needs a different prop — find out now,
-   not on Sept 12.
-3. **Test emergency:** Settings → set contact to your own 2nd number →
-   long-press the viewfinder → confirm a tap cancels the countdown → then
-   let one call through.
-4. Fix whatever breaks. Commit per fix.
-
-## Sept 4 — the on-device spike (not started)
-
-`ai_service.explain()` is the seam. Swap cloud Gemini for `flutter_gemma` +
-Gemma 2B. Before committing to it, measure on the iQOO 15 (or any Snapdragon
-phone):
-
-- `.npu` vs `.gpu` vs `.cpu` backend latency (NNAPI was >4200ms vs ~500ms CPU
+- `.npu` / `.gpu` / `.cpu` backend latency (NNAPI was >4200 ms vs ~500 ms CPU
   in arXiv 2607.02371 — do not assume NPU wins)
 - peak RAM with the model loaded + camera running
-- check Qualcomm AI Hub for pre-optimised Snapdragon weights
+- Qualcomm AI Hub for pre-optimised Snapdragon weights
 
 ## Shareable APK
 
@@ -64,24 +63,29 @@ phone):
 flutter build apk --release --split-per-abi
 ```
 
-- `android/app/build.gradle` release block has `minifyEnabled=false` +
-  `shrinkResources=false` — R8 fails on ML Kit's CJK/Devanagari text
-  recognisers, which we reference transitively but don't bundle. Re-enabling
-  R8 means adding keep rules for scripts we don't use; not worth it for a
-  test build.
-- Fat APK is ~90 MB. Split gives **`app-arm64-v8a-release.apk` (~38 MB)** —
-  hand testers this one (`armeabi-v7a` ~31 MB is 32-bit-only phones).
-- Output: `build/app/outputs/flutter-apk/` (gitignored).
-- Needs `lib/screens/constapi.dart` present (real Gemini key) or it builds
-  against the keyless `.example`.
+- Release block in `android/app/build.gradle`: `minifyEnabled=false` +
+  `shrinkResources=false` — R8 fails on ML Kit's CJK/Devanagari recognisers we
+  reference but don't bundle.
+- Fat APK ~90 MB; hand testers **`app-arm64-v8a-release.apk` (~38 MB)** from
+  `build/app/outputs/flutter-apk/` (gitignored). Over the 30 MB chat-upload
+  cap — share via WhatsApp-as-document / Drive.
+- Needs `lib/screens/constapi.dart` (real key) or it builds keyless.
+
+## Tooling added this session
+
+- `.mcp.json` → `context7` (live docs for flutter_tts / speech_to_text / camera
+  / ML Kit); enabled in `.claude/settings.local.json`.
+- `.claude/skills/device-run` (user-only): rebuild → install on Redmi → wait →
+  screenshot loop.
+- `.claude/skills/blind-ux-check` (Claude-only): accessibility guardrails.
 
 ## Known constraints
 
 - Impeller off (`EnableImpeller=false` in manifest) — black-screens old Mali GPUs
-- `speech_to_text` does not init on the Redmi's MIUI (stub recogniser) —
-  expected to work on the iQOO 15
-- `en-IN` TTS is a network-only voice on Indian devices — everything uses `en-US`
-- `lib/screens/constapi.dart` is gitignored; copy from `.example` and add a key
-- Commit with `git -c core.autocrlf=false` to avoid CRLF churn
-- `HACKATHON_README.md` is stale (pre-session, describes the fake on-device LLM) —
-  delete it or replace with a pointer to README + DEMO_FEATURES
+- `speech_to_text` dead on the Redmi's MIUI — all voice input unverified until iQOO
+- `en-IN` TTS is network-only on Indian devices — everything uses `en-US`
+- `SpeechConfig.rate` Android = 0.4 (flutter_tts's Android scale runs hot)
+- English-only: `isTamil` hard-wired false; dead Tamil ternaries still in source
+- `lib/screens/constapi.dart` gitignored; copy from `.example`, add a key
+- Always commit with `git -c core.autocrlf=false`
+- `HACKATHON_README.md` is stale — delete or point to README + DEMO_FEATURES
