@@ -18,7 +18,10 @@ import '../services/read_explain_logic.dart';
 /// answered — the screen is never silent.
 class ReadExplainScreen extends StatefulWidget {
   final String imagePath;
-  const ReadExplainScreen({super.key, required this.imagePath});
+  /// A spoken question from the user (double-tap-to-ask). Null = default
+  /// per-document-type explanation.
+  final String? question;
+  const ReadExplainScreen({super.key, required this.imagePath, this.question});
 
   @override
   State<ReadExplainScreen> createState() => _ReadExplainScreenState();
@@ -113,7 +116,7 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
     // --- Slow path: explanation, streamed ---
     setState(() => _stage = _Stage.explaining);
     final full = await _ai.explain(
-      explainPrompt(type, _ocrText),
+      explainPrompt(type, _ocrText, userQuestion: widget.question),
       onSentence: (s) {
         if (!mounted) return;
         setState(() => _explanation.write('$s '));

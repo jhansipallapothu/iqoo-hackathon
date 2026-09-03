@@ -54,20 +54,24 @@ String fallbackSentence(DocType type, String ocrText) {
 
 /// The instruction sent to the language model. Deliberately asks for actions,
 /// not a summary — explaining what to do is the whole product.
-String explainPrompt(DocType type, String ocrText) {
+String explainPrompt(DocType type, String ocrText, {String? userQuestion}) {
   const base =
       'You are helping a blind person who cannot see this document. '
       'Answer in at most three short sentences, plain spoken English, no '
       'formatting or bullet points. Do not repeat the raw text back.';
-  final ask = switch (type) {
-    DocType.medicine =>
-      'Say what this medicine is for, the dose limit, and the expiry if present.',
-    DocType.bill =>
-      'Say who the bill is from, how much is owed, and the due date.',
-    DocType.notice =>
-      'Say what this notice is about, what the person must do, and by when.',
-    DocType.generic => 'Say what this document is and what it means.',
-  };
+  final q = userQuestion?.trim();
+  final ask = (q != null && q.isNotEmpty)
+      ? 'The person asks: "$q". Answer that using the document; '
+          'if the document does not say, tell them so.'
+      : switch (type) {
+          DocType.medicine =>
+            'Say what this medicine is for, the dose limit, and the expiry if present.',
+          DocType.bill =>
+            'Say who the bill is from, how much is owed, and the due date.',
+          DocType.notice =>
+            'Say what this notice is about, what the person must do, and by when.',
+          DocType.generic => 'Say what this document is and what it means.',
+        };
   return '$base $ask\n\nText from the document:\n$ocrText';
 }
 
