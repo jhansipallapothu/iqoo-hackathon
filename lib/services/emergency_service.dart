@@ -43,7 +43,7 @@ class EmergencyService {
   /// [onTick] reports seconds remaining so the UI can show it.
   Future<void> trigger({void Function(int)? onTick}) async {
     final number = await getContact();
-    await SpeechConfig.apply(_tts, tamil: _localization.isTamil);
+    await SpeechConfig.apply(_tts);
     // Wait for each sentence to finish before the next stop()/speak(), otherwise
     // the spoken location — "the useful part even if the call never connects" —
     // is cut off milliseconds after it starts.

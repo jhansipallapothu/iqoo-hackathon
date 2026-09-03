@@ -25,7 +25,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   bool _onDeviceLLM = false;
   bool _offlineMode = false;
-  bool _tamilSupport = false;
   bool _gpsEnabled = false;
   bool _ttsEnabled = false;
   bool _vibrationFeedback = false;
@@ -59,7 +58,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       _onDeviceLLM = _configService.appConfig.features.onDeviceLLM;
       _offlineMode = _configService.appConfig.features.offlineMode;
-      _tamilSupport = _configService.appConfig.features.tamilSupport;
       _gpsEnabled = _configService.appConfig.features.gpsEnabled;
       _ttsEnabled = _configService.appConfig.features.ttsEnabled;
       _vibrationFeedback = _configService.appConfig.features.vibrationFeedback;
@@ -91,11 +89,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           break;
         case 'offline_mode':
           _offlineMode = value;
-          break;
-        case 'tamil_support':
-          _tamilSupport = value;
-          _localization.setLocale(value ? 'ta' : 'en');
-          _locale = value ? 'ta' : 'en';
           break;
         case 'gps_enabled':
           _gpsEnabled = value;
@@ -306,14 +299,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     trailing: const Icon(Icons.edit, color: Colors.blue),
                   ),
                 ]),
-                _buildSection(isTamil ? 'மொழி & அணுகல்' : 'Language & Accessibility', [
-                  _buildSwitchTile(
-                    title: _localization.tr('tamil'),
-                    subtitle: _localization.tr('language'),
-                    value: _tamilSupport,
-                    onChanged: (v) => _toggleFeature('tamil_support', v),
-                    leading: Icon(_tamilSupport ? Icons.translate : Icons.language, color: _tamilSupport ? Colors.green : Colors.grey),
-                  ),
+                _buildSection('Accessibility', [
                   _buildSwitchTile(
                     title: _localization.tr('tts_enabled'),
                     subtitle: _localization.tr('tts_desc'),

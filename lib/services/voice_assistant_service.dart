@@ -201,7 +201,7 @@ class VoiceAssistantService {
   }
 
   Future<void> _setupTTS() async {
-    await SpeechConfig.apply(_tts, tamil: _localization.isTamil);
+    await SpeechConfig.apply(_tts);
     // Small pause before speaking (milliseconds)
     await _tts.setSilence(50);
   }

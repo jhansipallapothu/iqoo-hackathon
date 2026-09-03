@@ -164,7 +164,7 @@ class _ChatscreenState extends State<Chatscreen> {
 
   Future<void> _setupTTS() async {
     await _tts.awaitSpeakCompletion(true);
-    await SpeechConfig.apply(_tts, tamil: _localization.isTamil);
+    await SpeechConfig.apply(_tts);
   }
 
   void _computeImageHash(String path) {
@@ -194,7 +194,52 @@ class _ChatscreenState extends State<Chatscreen> {
             ),
         ],
       ),
-      body: _buildUI(),
+      body: Stack(
+        children: [
+          _buildUI(),
+          if (_listening) _buildListeningOverlay(isTamil),
+        ],
+      ),
+    );
+  }
+
+  /// Full-screen, unmistakable "I'm listening" state — a small mic-icon swap in
+  /// the input row is not enough for a low-vision user. Tap anywhere to stop.
+  Widget _buildListeningOverlay(bool isTamil) {
+    return Positioned.fill(
+      child: Semantics(
+        liveRegion: true,
+        button: true,
+        label: isTamil ? 'கேட்கிறது. நிறுத்த தட்டவும்.' : 'Listening. Tap to stop.',
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _toggleVoiceMode,
+          child: Container(
+            color: Colors.blue.shade900.withValues(alpha: 0.92),
+            alignment: Alignment.center,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.mic, color: Colors.white, size: 96),
+                const SizedBox(height: 24),
+                Text(
+                  isTamil ? 'கேட்கிறது…' : 'Listening…',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 34,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  isTamil ? 'நிறுத்த எங்கும் தட்டவும்' : 'Tap anywhere to stop',
+                  style: const TextStyle(color: Colors.white70, fontSize: 16),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 

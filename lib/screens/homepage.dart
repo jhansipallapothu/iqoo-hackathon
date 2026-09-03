@@ -238,7 +238,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _announceReady() async {
     if (!_configService.appConfig.features.ttsEnabled) return;
     try {
-      await SpeechConfig.apply(_tts, tamil: _localization.isTamil);
+      await SpeechConfig.apply(_tts);
       final msg = _localization.isTamil
           ? 'AI அனைவருக்கும் தயார். படம் எடுக்க எங்கும் தட்டவும்.'
           : 'A I For All ready. Tap anywhere to take a photo. '
@@ -357,11 +357,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
   }
 
+  // Two modes only (DEMO_FEATURES): 0 = Explore (scene -> chat/VLM),
+  // 1 = Read & Explain (text -> OCR + plain-language explanation).
+  static const _modeCount = 2;
+
   String _getModeName(int index) {
-    return _localization.isTamil 
-        ? ['ஆராய்வு', 'உணவு லேபிள்கள்', 'உரை', 'ஆவணங்கள்'][index]
-        : ['Explore', 'Food Labels', 'Text', 'Documents'][index];
+    return _localization.isTamil
+        ? ['ஆராய்வு', 'படித்து விளக்கு'][index.clamp(0, _modeCount - 1)]
+        : ['Explore', 'Read & Explain'][index.clamp(0, _modeCount - 1)];
   }
+
+  String _modeInstruction(bool isTamil) =>
+      isTamil ? 'தட்டவும் · ஸ்வைப் செய்து மாற்றவும்' : 'Tap anywhere · swipe to switch';
 
   Future<void> _takePicture() async {
     if (_isProcessing) return;
@@ -424,10 +431,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   String _buildPrompt() {
     final isTamil = _localization.isTamil;
-    final modeKeys = ['explore', 'food', 'text', 'document'];
-    final mode = modeKeys[_selectedIndex.clamp(0, 3)];
-    
-    String prompt = _configService.getPrompt(mode, isTamil: isTamil);
+    // Only Explore (index 0) uses this prompt now — Read & Explain runs its own
+    // OCR + explanation pipeline and ignores it.
+    String prompt = _configService.getPrompt('explore', isTamil: isTamil);
     
     if (_currentPosition != null) {
       final locationContext = _configService.getLocationContext(
@@ -490,18 +496,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       enabled: true,
       child: MediaQuery(
         data: MediaQuery.of(context).copyWith(
-          textScaler: TextScaler.linear(textScale),
+          // Respect the OS text-size slider, but never below the app's floor
+          // (1.0, or 1.5 with Large Text on). Low-vision users lean on both.
+          textScaler: MediaQuery.textScalerOf(context)
+              .clamp(minScaleFactor: textScale),
           boldText: _highContrast,
           highContrast: _highContrast,
         ),
         child: Semantics(
           label: isTamil ? 'AI அனைவர்க்கும் मुख் ஸ்க்ரீன்' : 'AI For ALL Main Screen',
+          // No bottom bar, no FAB: the whole preview is the shutter (tap), and a
+          // horizontal swipe toggles the two modes. Nothing to find by sight.
           child: Scaffold(
             appBar: _buildAppBar(isTamil, isOnline),
             body: _buildBody(isTamil, isOnline),
-            bottomNavigationBar: _buildBottomNavBar(isTamil),
-            floatingActionButton: _buildFAB(isTamil),
-            floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
           ),
         ),
       ),
@@ -511,44 +519,35 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   PreferredSizeWidget _buildAppBar(bool isTamil, bool isOnline) {
     return AppBar(
       automaticallyImplyLeading: false,
+      toolbarHeight: 72,
+      // The most prominent text = what mode you're in and how to use it, big and
+      // bold. The address lives in the spoken location sentence, not here.
       title: Semantics(
         header: true,
+        liveRegion: true,
+        label: '${_getModeName(_selectedIndex)} mode. ${_modeInstruction(isTamil)}',
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _localization.tr('welcome'),
-              style: TextStyle(
-                color: Colors.blueAccent, 
-                fontSize: 18 * _textScaleFactor,
-                fontWeight: _highContrast ? FontWeight.bold : FontWeight.normal,
+              _getModeName(_selectedIndex),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
               ),
             ),
-            if (_currentAddress != null)
-              Text(
-                _currentAddress!,
-                style: TextStyle(
-                  color: Colors.white70, 
-                  fontSize: 11 * _textScaleFactor,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            if (_voiceAssistantActive)
-              Text(
-                _voiceStatus.isNotEmpty ? _voiceStatus : (_lastTranscription.isNotEmpty ? '"$_lastTranscription"' : 'Voice Active'),
-                style: TextStyle(
-                  color: Colors.greenAccent, 
-                  fontSize: 10 * _textScaleFactor,
-                  fontStyle: FontStyle.italic,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+            Text(
+              _modeInstruction(isTamil),
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ),
       ),
-      backgroundColor: _highContrast ? Colors.black : Colors.black,
+      backgroundColor: Colors.black,
       actions: [
         _buildVoiceAssistantButton(isTamil),
         _buildGPSIndicator(),
@@ -759,18 +758,73 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             onHorizontalDragEnd: (d) {
               final v = d.primaryVelocity ?? 0;
               if (v.abs() < 200) return;
-              final next = (_selectedIndex + (v < 0 ? 1 : -1)).clamp(0, 3);
+              final next = (_selectedIndex + (v < 0 ? 1 : -1))
+                  .clamp(0, _modeCount - 1);
               if (next != _selectedIndex) _onItemTapped(next);
             },
             child: SizedBox.expand(child: CameraPreview(_cameraController!)),
           ),
         ),
         _buildGPSOverlay(),
+        if (!_isProcessing && _emergencyCountdown == null)
+          _buildTapAffordance(isTamil),
         if (!isOnline) _buildOfflineBanner(isTamil),
         if (_isProcessing) _buildProcessingOverlay(isTamil),
         _buildVoiceAssistantOverlay(isTamil),
         if (_emergencyCountdown != null) _buildEmergencyOverlay(isTamil),
       ],
+    );
+  }
+
+  /// Big, high-contrast "what do I do here" cue on the preview. Decorative —
+  /// IgnorePointer lets the tap fall through to the shutter behind it, and the
+  /// parent GestureDetector already carries the Semantics.
+  Widget _buildTapAffordance(bool isTamil) {
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 48,
+      child: IgnorePointer(
+        child: ExcludeSemantics(
+          child: Column(
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.72),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: Text(
+                  _selectedIndex == 0
+                      ? (isTamil ? 'விவரிக்க தட்டவும்' : 'TAP TO DESCRIBE')
+                      : (isTamil ? 'படிக்க தட்டவும்' : 'TAP TO READ'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  isTamil ? 'மோடு மாற்ற ஸ்வைப் செய்யவும்' : 'swipe  ←  →  to switch mode',
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -1123,91 +1177,4 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildBottomNavBar(bool isTamil) {
-    return Container(
-      color: _highContrast ? Colors.black : Colors.black,
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: <Widget>[
-            _buildNavItem(Icons.explore, _localization.tr('explore'), 0),
-            _buildNavItem(Icons.qr_code, _localization.tr('food_labels'), 1),
-            _buildNavItem(Icons.text_fields, _localization.tr('text_mode'), 2),
-            _buildNavItem(Icons.document_scanner, _localization.tr('documents'), 3),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, int index) {
-    final isSelected = _selectedIndex == index;
-    return Semantics(
-      button: true,
-      selected: isSelected,
-      label: label,
-      hint: _localization.isTamil ? '$label மோடு தேர்வு செய்ய டேப் செய்யவும்' : 'Tap to select $label mode',
-      child: GestureDetector(
-        onTap: () => _onItemTapped(index),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Icon(
-                icon,
-                color: isSelected ? Colors.white : Colors.grey,
-                size: isSelected ? 28 : 24,
-              ),
-              const SizedBox(height: 5),
-              Text(
-                label,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.grey,
-                  fontSize: 11 * _textScaleFactor,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                ),
-              ),
-              if (isSelected)
-                Container(
-                  margin: const EdgeInsets.only(top: 4),
-                  height: 3,
-                  width: 30,
-                  color: Colors.blueAccent,
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFAB(bool isTamil) {
-    if (!_isCameraInitialized) return const SizedBox.shrink();
-    
-    final accuracy = _currentPosition?.accuracy ?? 999;
-    final isHighAccuracy = accuracy <= 10;
-    
-    return Semantics(
-      button: true,
-      label: isTamil ? 'புகைப்படம் எடுக்க' : 'Take Picture',
-      hint: isTamil ? 'கேமரா புகைப்படம் எடுக்க மைய பட்டனை டேப் செய்யவும்' : 'Tap center button to capture photo',
-      child: FloatingActionButton(
-        onPressed: _isProcessing ? null : _takePicture,
-        child: _isProcessing
-            ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
-              )
-            : const Icon(Icons.camera, size: 28),
-        backgroundColor: isHighAccuracy ? Colors.green : Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 8,
-        tooltip: isTamil ? 'புகைப்படம் எடுக்க' : 'Take Picture',
-      ),
-    );
-  }
 }

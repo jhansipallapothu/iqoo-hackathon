@@ -30,7 +30,7 @@ class SmsService {
     final granted = await Permission.sms.request();
     if (!granted.isGranted) return;
 
-    await SpeechConfig.apply(_tts, tamil: _localization.isTamil);
+    await SpeechConfig.apply(_tts);
 
     _telephony.listenIncomingSms(
       onNewMessage: (SmsMessage msg) =>

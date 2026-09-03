@@ -60,7 +60,7 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
     await _config.initialize();
     await _localization.initialize();
     await _cache.initialize();
-    await SpeechConfig.apply(_tts, tamil: _localization.isTamil);
+    await SpeechConfig.apply(_tts);
     // Queue utterances instead of the flutter_tts default (QUEUE_FLUSH), so the
     // "Reading" cue, the raw OCR readout, and each streamed explanation sentence
     // all play in full instead of cutting each other off.

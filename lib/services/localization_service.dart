@@ -1,29 +1,25 @@
 import 'dart:convert';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class LocalizationService {
   static final LocalizationService _instance = LocalizationService._internal();
   factory LocalizationService() => _instance;
   LocalizationService._internal();
 
-  static const String _localeKey = 'app_locale';
-  
+  // English-only build. The Tamil string branches scattered through the app are
+  // dead code until a proper l10n pass — isTamil is hard-wired false so they
+  // never execute. Do not re-enable without finishing the Tamil translations.
   Map<String, String> _strings = {};
-  String _currentLocale = 'en';
+  final String _currentLocale = 'en';
   bool _initialized = false;
 
   String get currentLocale => _currentLocale;
-  bool get isTamil => _currentLocale == 'ta';
+  bool get isTamil => false;
   bool get initialized => _initialized;
 
   Future<void> initialize() async {
     if (_initialized) return;
-    
-    final prefs = await SharedPreferences.getInstance();
-    _currentLocale = prefs.getString(_localeKey) ?? 'en';
-    
-    await _loadStrings(_currentLocale);
+    await _loadStrings('en');
     _initialized = true;
   }
 
@@ -33,23 +29,12 @@ class LocalizationService {
       final Map<String, dynamic> jsonMap = json.decode(jsonString);
       _strings = jsonMap.map((key, value) => MapEntry(key, value.toString()));
     } catch (e) {
-      // Fallback to English
-      if (locale != 'en') {
-        await _loadStrings('en');
-      } else {
-        _strings = {};
-      }
+      _strings = {};
     }
   }
 
-  Future<void> setLocale(String locale) async {
-    if (locale == _currentLocale) return;
-    
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_localeKey, locale);
-    _currentLocale = locale;
-    await _loadStrings(locale);
-  }
+  // No-op: this build ships English only.
+  Future<void> setLocale(String locale) async {}
 
   String tr(String key, {Map<String, String>? params}) {
     String result = _strings[key] ?? key;
@@ -63,5 +48,5 @@ class LocalizationService {
     return result;
   }
 
-  List<String> get supportedLocales => ['en', 'ta'];
+  List<String> get supportedLocales => ['en'];
 }

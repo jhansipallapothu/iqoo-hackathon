@@ -20,12 +20,10 @@ class SpeechConfig {
 
   static const double volume = 1.0;
 
-  /// Applies rate/pitch/volume and picks a language that actually has offline
-  /// voice data. en-IN is frequently a network-only voice on Indian devices:
-  /// speak() reports success and produces no audio, so fall back to en-US.
-  static Future<void> apply(FlutterTts tts, {required bool tamil}) async {
-    final ok = await tts.setLanguage(tamil ? 'ta-IN' : 'en-US');
-    if (ok != 1) await tts.setLanguage('en-US');
+  /// Applies rate/pitch/volume. Always en-US: en-IN is frequently a network-only
+  /// voice on Indian devices — speak() reports success and produces no audio.
+  static Future<void> apply(FlutterTts tts) async {
+    await tts.setLanguage('en-US');
     await tts.setSpeechRate(rate);
     await tts.setPitch(pitch);
     await tts.setVolume(volume);
