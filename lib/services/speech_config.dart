@@ -12,7 +12,7 @@ class SpeechConfig {
   /// normal. iOS uses 0.0–1.0 with ~0.5 as normal, so it needs its own value.
   /// ponytail: tune on the real device before the demo — comfortable speed is
   /// personal, and this is the one number a blind tester will comment on.
-  static double get rate => Platform.isIOS ? 0.55 : 1.3;
+  static double get rate => Platform.isIOS ? 0.5 : 1.05;
 
   /// Slightly below neutral so it does not blend with people talking nearby.
   static const double pitch = 0.9;

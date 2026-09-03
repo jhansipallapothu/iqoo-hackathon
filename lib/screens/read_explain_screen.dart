@@ -202,8 +202,31 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.file(File(widget.imagePath),
-                    height: 200, width: double.infinity, fit: BoxFit.cover),
+                child: Image.file(
+                  File(widget.imagePath),
+                  key: ValueKey(widget.imagePath),
+                  height: 200,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  gaplessPlayback: true,
+                  // ponytail: bound decode so a full-res capture can't blow the
+                  // image cache and render nothing.
+                  cacheWidth: 1080,
+                  frameBuilder: (context, child, frame, wasSync) {
+                    if (wasSync || frame != null) return child;
+                    return const SizedBox(
+                      height: 200,
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  },
+                  errorBuilder: (context, error, stack) => Container(
+                    height: 200,
+                    color: Colors.grey[300],
+                    alignment: Alignment.center,
+                    child: Icon(Icons.image_not_supported,
+                        size: 40, color: Colors.grey[600]),
+                  ),
+                ),
               ),
               const SizedBox(height: 12),
               Row(
@@ -226,15 +249,30 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
                 Text(_explanation.toString().trim(),
                     style: const TextStyle(fontSize: 18)),
               ],
-              if (_ocrText.isNotEmpty) ...[
+              if (_stage != _Stage.reading) ...[
                 const Divider(height: 32),
                 Text(_localization.isTamil ? 'கண்டறியப்பட்ட உரை' : 'Detected text',
                     style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 12,
                         fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text(_ocrText, style: TextStyle(color: Colors.grey[700])),
+                const SizedBox(height: 6),
+                Text(
+                  _ocrText.isNotEmpty
+                      ? _ocrText
+                      : (_localization.isTamil
+                          ? 'உரை எதுவும் கண்டறியப்படவில்லை'
+                          : 'No readable text found'),
+                  style: TextStyle(
+                      fontSize: 16,
+                      height: 1.4,
+                      color: _ocrText.isNotEmpty
+                          ? Colors.black87
+                          : Colors.grey[600],
+                      fontStyle: _ocrText.isNotEmpty
+                          ? FontStyle.normal
+                          : FontStyle.italic),
+                ),
               ],
             ],
           ),
