@@ -31,6 +31,12 @@ android {
         release {
             // Debug signing so `flutter build apk --release` works without a keystore.
             signingConfig = signingConfigs.debug
+            // ML Kit's text-recognition lib references the CJK/Devanagari
+            // recognisers we don't bundle; R8 fails on the missing classes.
+            // We ship a test build, not an optimised store release — skip
+            // shrinking rather than maintain keep rules for it.
+            minifyEnabled = false
+            shrinkResources = false
         }
     }
 }
