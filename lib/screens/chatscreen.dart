@@ -87,9 +87,16 @@ class _ChatscreenState extends State<Chatscreen> {
     try {
       _sttReady = await _stt.initialize(
         onStatus: (s) {
-          // When a listen turn ends on its own (silence), reflect it.
+          // A listen turn can end with only this callback (silence, no result).
           if (s == 'done' || s == 'notListening') {
             if (mounted) setState(() => _listening = false);
+            // Keep the ChatGPT-style loop alive: if we're still in voice mode
+            // and not mid-answer, re-open the mic for the next turn.
+            if (_voiceMode && !_isLoading) {
+              Future.delayed(const Duration(milliseconds: 700), () {
+                if (_voiceMode && !_isLoading && !_listening) _listenOnce();
+              });
+            }
           }
         },
         onError: (_) {
@@ -131,8 +138,8 @@ class _ChatscreenState extends State<Chatscreen> {
         final text = r.recognizedWords.trim();
         setState(() => _listening = false);
         if (text.isEmpty) {
+          // onStatus('notListening') re-opens the mic; just acknowledge here.
           _speak(_localization.isTamil ? 'கேட்கவில்லை.' : "Didn't catch that.");
-          Future.delayed(const Duration(milliseconds: 1200), _listenOnce);
           return;
         }
         _sendMessage(ChatMessage(

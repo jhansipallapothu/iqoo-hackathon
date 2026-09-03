@@ -26,7 +26,12 @@ class EmergencyService {
   final LocalizationService _localization = LocalizationService();
 
   Timer? _timer;
-  bool get isCountingDown => _timer?.isActive ?? false;
+  // True from the moment trigger() commits (contact found) until the call is
+  // placed or cancel() runs — covers the spoken preamble as well as the visible
+  // countdown, so a tap/key during the preamble aborts too.
+  bool _armed = false;
+  bool _cancelled = false;
+  bool get isCountingDown => _armed;
 
   static Future<String?> getContact() async =>
       (await SharedPreferences.getInstance()).getString(_prefsKey);
@@ -39,6 +44,10 @@ class EmergencyService {
   Future<void> trigger({void Function(int)? onTick}) async {
     final number = await getContact();
     await SpeechConfig.apply(_tts, tamil: _localization.isTamil);
+    // Wait for each sentence to finish before the next stop()/speak(), otherwise
+    // the spoken location — "the useful part even if the call never connects" —
+    // is cut off milliseconds after it starts.
+    await _tts.awaitSpeakCompletion(true);
 
     if (number == null || number.isEmpty) {
       await _speak(_localization.isTamil
@@ -47,38 +56,54 @@ class EmergencyService {
       return;
     }
 
-    // Location first — it is the useful part even if the call never connects.
-    await _speak(await _locationSentence());
-
+    _armed = true;
+    _cancelled = false;
     var remaining = countdownSeconds;
     onTick?.call(remaining);
+
+    // Location first — it is the useful part even if the call never connects.
+    // Re-check _cancelled after each spoken line: the preamble takes seconds and
+    // the overlay/keys say "tap to cancel" the whole time.
+    await _speak(await _locationSentence());
+    if (_cancelled) return;
+
     await _speak(_localization.isTamil
         ? 'அவசர அழைப்பு $remaining வினாடிகளில். நிறுத்த திரையைத் தட்டவும்.'
         : 'Calling your emergency contact in $remaining seconds. '
             'Tap the screen to stop.');
+    if (_cancelled) return;
 
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (t) async {
+      if (_cancelled) {
+        t.cancel();
+        return;
+      }
       remaining--;
       onTick?.call(remaining);
       if (remaining <= 0) {
         t.cancel();
+        _armed = false;
         await _placeCall(number);
       }
     });
   }
 
-  /// Any tap / key press during the countdown stops it.
+  /// Any tap / key press during the preamble or countdown stops it.
   Future<void> cancel() async {
-    if (!isCountingDown) return;
+    if (!_armed) return;
+    _cancelled = true;
+    _armed = false;
     _timer?.cancel();
     _timer = null;
+    await _tts.stop();
     await _speak(_localization.isTamil
         ? 'அவசர அழைப்பு ரத்து செய்யப்பட்டது.'
         : 'Emergency call cancelled.');
   }
 
   Future<void> _placeCall(String number) async {
+    if (_cancelled) return;
     try {
       final placed =
           await _channel.invokeMethod<bool>('call', {'number': number});

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
@@ -62,12 +61,18 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
     await _localization.initialize();
     await _cache.initialize();
     await SpeechConfig.apply(_tts, tamil: _localization.isTamil);
-    await _tts.awaitSpeakCompletion(false); // let sentences queue back to back
+    // Queue utterances instead of the flutter_tts default (QUEUE_FLUSH), so the
+    // "Reading" cue, the raw OCR readout, and each streamed explanation sentence
+    // all play in full instead of cutting each other off.
+    await _tts.setQueueMode(1);
+    await _tts.awaitSpeakCompletion(false); // don't block _run on each utterance
 
     HapticFeedback.mediumImpact();
     await _speak(_localization.isTamil ? 'படிக்கிறது' : 'Reading');
 
-    final hash = await _imageHash(widget.imagePath);
+    // Cheap cache key: each capture lands at a unique path, so no need to hash
+    // the multi-MB JPEG on the UI isolate mid-render (chatscreen does the same).
+    final hash = widget.imagePath.hashCode.toString();
 
     // Cache hit — replay a previous full answer instantly.
     final cached = await _cache.getCachedResponse(prompt: 're:$hash');
@@ -149,14 +154,6 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
 
   String _preview(String s) =>
       s.length > 240 ? '${s.substring(0, 240)}…' : s;
-
-  Future<String> _imageHash(String path) async {
-    try {
-      return sha1.convert(await File(path).readAsBytes()).toString();
-    } catch (_) {
-      return path.hashCode.toString();
-    }
-  }
 
   String get _statusLabel {
     final ta = _localization.isTamil;

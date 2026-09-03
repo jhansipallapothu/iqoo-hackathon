@@ -1,8 +1,10 @@
 package com.example.camapp
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.net.Uri
 import android.view.KeyEvent
 import androidx.core.app.ActivityCompat
@@ -43,8 +45,15 @@ class MainActivity : FlutterActivity() {
                     // Falls back to the dialer, which needs no permission.
                     "dial" -> {
                         val number = call.argument<String>("number")
-                        startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$number")))
-                        result.success(true)
+                        if (number.isNullOrBlank()) {
+                            result.error("no_number", "No number supplied", null)
+                        } else {
+                            startActivity(
+                                Intent(Intent.ACTION_DIAL, Uri.parse("tel:$number"))
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
+                            result.success(true)
+                        }
                     }
                     "hasCallPermission" -> result.success(hasCallPermission())
                     "requestCallPermission" -> {
@@ -62,22 +71,52 @@ class MainActivity : FlutterActivity() {
         this, Manifest.permission.CALL_PHONE
     ) == PackageManager.PERMISSION_GRANTED
 
-    /** Returns true if the call was placed, false if we only opened the dialer. */
+    /**
+     * Returns true only if an ACTION_CALL activity was actually started. If the
+     * countdown finished while the app was backgrounded, Android silently blocks
+     * the background activity start — catch that and return false so the Dart
+     * side speaks its "open the dialler" fallback instead of a false success.
+     */
     private fun placeCall(number: String): Boolean {
         val uri = Uri.parse("tel:$number")
-        return if (hasCallPermission()) {
-            startActivity(Intent(Intent.ACTION_CALL, uri))
-            true
-        } else {
-            startActivity(Intent(Intent.ACTION_DIAL, uri))
+        val flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        if (hasCallPermission()) {
+            try {
+                startActivity(Intent(Intent.ACTION_CALL, uri).addFlags(flags))
+                return true
+            } catch (e: Exception) {
+                // fall through to the dialler
+            }
+        }
+        return try {
+            startActivity(Intent(Intent.ACTION_DIAL, uri).addFlags(flags))
+            false
+        } catch (e: Exception) {
             false
         }
     }
 
+    private val audio by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
+
+    // No system volume UI (flag 0), but the media stream still moves — otherwise a
+    // blind user whose media volume is muted has no way to hear the TTS output.
+    private fun nudgeVolume(up: Boolean) = audio.adjustStreamVolume(
+        AudioManager.STREAM_MUSIC,
+        if (up) AudioManager.ADJUST_RAISE else AudioManager.ADJUST_LOWER,
+        0
+    )
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         when (keyCode) {
-            KeyEvent.KEYCODE_VOLUME_UP -> { events?.success("volume_up"); return true }
-            KeyEvent.KEYCODE_VOLUME_DOWN -> { events?.success("volume_down"); return true }
+            KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.KEYCODE_VOLUME_DOWN -> {
+                val up = keyCode == KeyEvent.KEYCODE_VOLUME_UP
+                nudgeVolume(up)
+                // Fire the app action once per physical press, not on auto-repeat.
+                if (event?.repeatCount == 0) {
+                    events?.success(if (up) "volume_up" else "volume_down")
+                }
+                return true
+            }
         }
         return super.onKeyDown(keyCode, event)
     }

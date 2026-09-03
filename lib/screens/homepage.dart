@@ -199,7 +199,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _triggerEmergencySOS() async {
+    if (_emergency.isCountingDown) return; // already armed — ignore repeat presses
     HapticFeedback.heavyImpact();
+    // No contact set: trigger() just speaks the hint. Don't show the red
+    // countdown overlay — nothing ticks it down and it would stick on "5".
+    final contact = await EmergencyService.getContact();
+    if (contact == null || contact.isEmpty) {
+      await _emergency.trigger();
+      return;
+    }
     setState(() => _emergencyCountdown = EmergencyService.countdownSeconds);
     await _emergency.trigger(onTick: (s) {
       if (mounted) setState(() => _emergencyCountdown = s > 0 ? s : null);
@@ -286,11 +294,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _initializeCamera() async {
     if (widget.camera == null) return;
 
-    // medium is plenty for a VLM prompt and initialises noticeably faster than
-    // high; audio off since we never record video.
+    // high, not medium: the same capture feeds ML Kit OCR for Read & Explain,
+    // and medium (~480p) can't resolve 6pt print on a medicine strip or a bill.
+    // audio off since we never record video.
     _cameraController = CameraController(
       widget.camera!,
-      ResolutionPreset.medium,
+      ResolutionPreset.high,
       enableAudio: false,
     );
 
