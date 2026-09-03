@@ -8,11 +8,12 @@ import 'package:flutter_tts/flutter_tts.dart';
 /// voices. Values are deliberately in one file: four screens/services used to
 /// each hardcode their own, which drifted.
 class SpeechConfig {
-  /// Android passes this straight to TextToSpeech.setSpeechRate, where 1.0 is
-  /// normal. iOS uses 0.0–1.0 with ~0.5 as normal, so it needs its own value.
-  /// ponytail: tune on the real device before the demo — comfortable speed is
-  /// personal, and this is the one number a blind tester will comment on.
-  static double get rate => Platform.isIOS ? 0.5 : 1.05;
+  /// flutter_tts on Android does NOT map 1.0 to the engine's natural pace — its
+  /// scale runs hot, so 1.0 already sounds rushed and ~0.5 is a normal talking
+  /// speed. iOS uses 0.0–1.0 with ~0.5 as normal.
+  /// ponytail: this is the calibration knob — comfortable speed is personal and
+  /// it's the one number a blind tester will comment on. Nudge, rebuild, listen.
+  static double get rate => Platform.isIOS ? 0.5 : 0.4;
 
   /// Slightly below neutral so it does not blend with people talking nearby.
   static const double pitch = 0.9;
