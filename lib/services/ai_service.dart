@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
 import '../services/on_device_llm_service.dart';
@@ -19,6 +18,15 @@ class AIService {
   final Gemini _gemini = Gemini.instance;
   bool _useOnDevice = false;
   bool _initialized = false;
+
+  /// Tried in order. gemini-3.6-flash is what this key is provisioned for, but
+  /// it returns 503 "high demand" intermittently — fall back to the aliases,
+  /// which are backed by whatever flash model is currently healthy.
+  static const _models = <String>[
+    'models/gemini-3.6-flash',
+    'models/gemini-flash-latest',
+    'models/gemini-3.7-flash',
+  ];
 
   bool get useOnDevice => _useOnDevice;
   bool get initialized => _initialized;
@@ -63,28 +71,25 @@ class AIService {
       // Fall through to cloud if on-device fails
     }
 
-    // Cloud fallback
-    try {
-      // flutter_gemini 2.0.5 defaults to retired models. This key requires
-      // gemini-3.6-flash (2.5/3.x-preview return 404 "not available to new users").
-      final response = await _gemini.streamGenerateContent(
-        finalPrompt,
-        images: images,
-        modelName: 'models/gemini-3.6-flash',
-      ).first;
+    // Cloud fallback — try each model, move on when one 503s / times out.
+    for (final model in _models) {
+      try {
+        final response = await _gemini
+            .streamGenerateContent(finalPrompt, images: images, modelName: model)
+            .first
+            .timeout(const Duration(seconds: 15));
 
-      final text = response.content?.parts
-          ?.map((p) => p.text ?? '')
-          .join('') ?? '';
-
-      return _formatResponse(text, browsingContext);
-    } catch (e, st) {
-      // Do NOT return the raw exception as if it were the assistant's reply —
-      // the chat screen would render a stack trace. Log it, hand back null so
-      // the caller shows a clean "couldn't reach the assistant" message.
-      debugPrint('AIService.generateResponse Gemini call failed: $e\n$st');
-      return null;
+        final text = response.content?.parts
+            ?.map((p) => p.text ?? '')
+            .join('') ?? '';
+        if (text.trim().isNotEmpty) return _formatResponse(text, browsingContext);
+      } catch (e) {
+        // Never return the raw exception as the assistant's reply. Log it and
+        // try the next model; if all fail the caller shows a clean message.
+        debugPrint('AIService.generateResponse $model failed: $e');
+      }
     }
+    return null;
   }
 
   /// Text-only explanation with the first sentence delivered fast. Used by the
@@ -114,28 +119,31 @@ class AIService {
       }
     }
 
-    try {
-      final stream = _gemini
-          .streamGenerateContent(promptText, modelName: 'models/gemini-3.6-flash')
-          .timeout(timeout);
-      await for (final chunk in stream) {
-        final t = chunk.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
-        if (t.isEmpty) continue;
-        buf.write(t);
-        flushSentences();
+    // Try each model in turn, but only while nothing has been spoken yet —
+    // once sentences have streamed out, switching models would repeat them.
+    for (final model in _models) {
+      if (buf.isNotEmpty) break;
+      try {
+        final stream =
+            _gemini.streamGenerateContent(promptText, modelName: model).timeout(timeout);
+        await for (final chunk in stream) {
+          final t = chunk.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
+          if (t.isEmpty) continue;
+          buf.write(t);
+          flushSentences();
+        }
+        final rest = buf.toString().substring(spokenUpTo).trim();
+        if (rest.isNotEmpty) onSentence?.call(rest);
+        final full = buf.toString().trim();
+        if (full.isNotEmpty) return full;
+      } catch (e) {
+        // 503 / timeout / bad model — log and let the loop try the next one
+        // (or stop, if this attempt already produced partial spoken text).
+        debugPrint('AIService.explain $model failed: $e');
       }
-      // Speak any trailing text with no terminator.
-      final rest = buf.toString().substring(spokenUpTo).trim();
-      if (rest.isNotEmpty) onSentence?.call(rest);
-      final full = buf.toString().trim();
-      return full.isEmpty ? null : full;
-    } catch (e) {
-      // Partial output is still useful; hand back whatever arrived. Log the
-      // real cause (bad key / model / network) — the caller only sees null.
-      debugPrint('AIService.explain Gemini stream failed: $e');
-      final partial = buf.toString().trim();
-      return partial.isEmpty ? null : partial;
     }
+    final partial = buf.toString().trim();
+    return partial.isEmpty ? null : partial;
   }
 
   bool _shouldBrowse(String prompt) {

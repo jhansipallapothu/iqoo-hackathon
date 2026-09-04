@@ -67,6 +67,11 @@ class VoiceAssistantService {
   bool _isWakeWordActive = false;
   bool _isProcessing = false;
   bool _isInitialized = false;
+  bool _sttAvailable = false; // false on devices with no real recogniser (MIUI)
+
+  /// Whether speech recognition actually works here. When false, every "listen"
+  /// entry point speaks a notice instead of silently doing nothing.
+  bool get sttAvailable => _sttAvailable;
   bool _accessibilityMode = false;
   String _wakeWord = 'hey assistant';
   double _shakeThreshold = 15.0;
@@ -198,9 +203,13 @@ class VoiceAssistantService {
       _handleError('Speech init threw: $e');
     }
 
+    _sttAvailable = available;
+
     if (!available) {
-      _handleError('Speech recognition not available on this device');
-      // TTS + shake still work — mark initialised so those aren't blocked.
+      // Not an error the user should hear on every launch — it's a known
+      // device limitation. Just note it; the listen entry points announce it
+      // when the user actually tries to use voice.
+      onStatusUpdate?.call('stt_unavailable');
       _setupShakeDetection();
       _isInitialized = true;
       return;
@@ -267,7 +276,11 @@ class VoiceAssistantService {
 
   Future<void> startWakeWordListening() async {
     if (!_isInitialized || _isWakeWordActive) return;
-    
+    if (!_sttAvailable) {
+      _announce('Voice input is not available on this phone. '
+          'Use the buttons and the volume keys instead.');
+      return;
+    }
     _isWakeWordActive = true;
     _listenForWakeWord();
   }

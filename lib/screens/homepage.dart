@@ -552,10 +552,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   // Voice Assistant Controls
   Future<void> _toggleVoiceAssistant() async {
+    if (!_voiceAssistantActive && !_voiceAssistant.sttAvailable) {
+      _voiceAssistant.announce(
+          'Voice input is not available on this phone. Tap anywhere to capture, '
+          'volume down to repeat, swipe to change mode.');
+      return;
+    }
     setState(() {
       _voiceAssistantActive = !_voiceAssistantActive;
     });
-    
+
     if (_voiceAssistantActive) {
       await _voiceAssistant.startListening();
       _voiceAssistant.announce('Voice assistant activated. Say "Hey Assistant" to begin.');
