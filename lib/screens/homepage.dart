@@ -51,6 +51,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _sttReady = false;
   bool _askingPrompt = false;
   bool _showOnboarding = false;
+  // True once 'onboarding_seen' has been read. Until then _announceReady() must
+  // stay quiet, or on a first run it races the tutorial and clips step 1.
+  bool _onboardingChecked = false;
   int _onboardingStep = 0;
   StreamSubscription<String>? _keySub;
   int? _emergencyCountdown;
@@ -255,8 +258,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _largeText = largeText;
         _textScaleFactor = largeText ? 1.5 : 1.0;
         _showOnboarding = !onboarded;
+        _onboardingChecked = true;
       });
-      if (_showOnboarding) _speakOnboardingStep();
+      // Now that we know: run the tutorial, or (returning user) give the ready
+      // prompt that _announceReady() held back while this was unknown.
+      if (_showOnboarding) {
+        _speakOnboardingStep();
+      } else {
+        _announceReady();
+      }
     }
   }
 
@@ -318,6 +328,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _announceReady() async {
+    if (!_onboardingChecked) return; // don't race the first-run tutorial
     if (_showOnboarding) return; // the tutorial is talking
     if (!_configService.appConfig.features.ttsEnabled) return;
     try {

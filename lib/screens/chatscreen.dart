@@ -51,6 +51,8 @@ class _ChatscreenState extends State<Chatscreen> {
   bool _sttReady = false;
   bool _voiceMode = false;
   bool _listening = false;
+  int _emptyTurns = 0; // consecutive mic turns that returned nothing
+  static const _maxEmptyTurns = 3;
 
   ChatUser currentUser = ChatUser(id: "0", firstName: "User");
   ChatUser geminiUser = ChatUser(
@@ -91,8 +93,19 @@ class _ChatscreenState extends State<Chatscreen> {
           if (s == 'done' || s == 'notListening') {
             if (mounted) setState(() => _listening = false);
             // Keep the ChatGPT-style loop alive: if we're still in voice mode
-            // and not mid-answer, re-open the mic for the next turn.
+            // and not mid-answer, re-open the mic for the next turn — but give
+            // up after a few empty turns so a dead recogniser can't spin the
+            // mic forever with no cue to the user.
             if (_voiceMode && !_isLoading) {
+              _emptyTurns++;
+              if (_emptyTurns >= _maxEmptyTurns) {
+                if (mounted) setState(() => _voiceMode = false);
+                _stt.stop();
+                _speak(_localization.isTamil
+                    ? 'குரல் உள்ளீடு வேலை செய்யவில்லை. குரல் அரட்டை நிறுத்தப்பட்டது.'
+                    : "Voice input isn't working here. Voice chat is off.");
+                return;
+              }
               Future.delayed(const Duration(milliseconds: 700), () {
                 if (_voiceMode && !_isLoading && !_listening) _listenOnce();
               });
@@ -119,6 +132,7 @@ class _ChatscreenState extends State<Chatscreen> {
     setState(() => _voiceMode = !_voiceMode);
     HapticFeedback.mediumImpact();
     if (_voiceMode) {
+      _emptyTurns = 0;
       _speak(_localization.isTamil ? 'குரல் அரட்டை இயக்கத்தில்.' : 'Voice chat on.');
       _listenOnce();
     } else {
@@ -142,6 +156,7 @@ class _ChatscreenState extends State<Chatscreen> {
           _speak(_localization.isTamil ? 'கேட்கவில்லை.' : "Didn't catch that.");
           return;
         }
+        _emptyTurns = 0; // a real transcription — the recogniser works
         _sendMessage(ChatMessage(
           user: currentUser,
           createdAt: DateTime.now(),

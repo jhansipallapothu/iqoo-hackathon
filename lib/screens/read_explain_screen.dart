@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import '../services/ocr_service.dart';
 import '../services/ai_service.dart';
-import '../services/offline_cache_service.dart';
 import '../services/localization_service.dart';
 import '../services/config_service.dart';
 import '../services/speech_config.dart';
@@ -32,7 +31,6 @@ enum _Stage { reading, ocrDone, explaining, done, failed }
 class _ReadExplainScreenState extends State<ReadExplainScreen> {
   final _ocr = OcrService();
   final _ai = AIService();
-  final _cache = OfflineCacheService();
   final _localization = LocalizationService();
   final _config = ConfigService();
   final _tts = FlutterTts();
@@ -65,7 +63,6 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
   Future<void> _run() async {
     await _config.initialize();
     await _localization.initialize();
-    await _cache.initialize();
     await SpeechConfig.apply(_tts);
     // Queue utterances instead of the flutter_tts default (QUEUE_FLUSH), so the
     // "Reading" cue, the raw OCR readout, and each streamed explanation sentence
@@ -76,21 +73,10 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
     HapticFeedback.mediumImpact();
     await _speak(_localization.isTamil ? 'படிக்கிறது' : 'Reading');
 
-    // Cheap cache key: each capture lands at a unique path, so no need to hash
-    // the multi-MB JPEG on the UI isolate mid-render (chatscreen does the same).
-    final hash = widget.imagePath.hashCode.toString();
-
-    // Cache hit — replay a previous full answer instantly.
-    final cached = await _cache.getCachedResponse(prompt: 're:$hash');
-    if (cached != null && cached.isNotEmpty) {
-      setState(() {
-        _stage = _Stage.done;
-        _explanation.write(cached);
-      });
-      await _speak(cached);
-      _spokenFull = cached;
-      return;
-    }
+    // No response cache here: the previous key (imagePath.hashCode) was unique
+    // per capture so it never hit, and a content hash of the JPEG janks the UI
+    // isolate. Each capture just re-runs — OCR is fast and the LLM has its own
+    // timeout/fallback.
 
     // --- Fast path: OCR ---
     try {
@@ -149,11 +135,6 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
       }
     } else {
       setState(() => _stage = _Stage.done);
-      // Cache the full, useful result (OCR lead + explanation).
-      final toCache = _explanation.toString().trim();
-      if (toCache.isNotEmpty) {
-        await _cache.cacheResponse(prompt: 're:$hash', response: toCache);
-      }
     }
 
     await _offerPayment();
