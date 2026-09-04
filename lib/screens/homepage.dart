@@ -15,6 +15,7 @@ import '../services/voice_assistant_service.dart';
 import '../services/sms_service.dart';
 import '../services/hardware_keys.dart';
 import '../services/speech_config.dart';
+import '../services/voice_prompt.dart';
 import '../services/emergency_service.dart';
 import '../widgets/debug_overlay.dart';
 import 'chatscreen.dart';
@@ -452,6 +453,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   String _modeInstruction(bool isTamil) =>
       isTamil ? 'தட்டவும் · ஸ்வைப் செய்து மாற்றவும்' : 'Tap anywhere · swipe to switch';
 
+  /// Read & Explain only: double-tap the preview to speak a question, then
+  /// capture and answer *that* instead of the mode's default prompt.
+  Future<void> _askThenCapture() async {
+    if (_isProcessing || _emergency.isCountingDown) return;
+    HapticFeedback.mediumImpact();
+    final q = await VoicePrompt.ask(announce: _voiceAssistant.announce);
+    if (!mounted) return;
+    if (q == null) {
+      _voiceAssistant.announce(
+          'Voice input is not available on this phone. Taking a normal photo.');
+      return _takePicture();
+    }
+    if (q.isEmpty) {
+      _voiceAssistant.announce("Didn't catch that. Taking a normal photo.");
+      return _takePicture();
+    }
+    _takePicture(question: q);
+  }
+
   Future<void> _takePicture({String? question}) async {
     if (_isProcessing) return;
 
@@ -854,11 +874,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               : 'Tap anywhere to take a photo',
           hint: isTamil
               ? 'அவசரத்திற்கு நீண்ட நேரம் அழுத்தவும். ஸ்வைப் செய்து மோடு மாற்றவும்.'
-              : 'Long-press for emergency. Swipe to change mode.',
+              : (_selectedIndex == 1
+                  ? 'Double-tap to ask a question first. Long-press for emergency. Swipe to change mode.'
+                  : 'Long-press for emergency. Swipe to change mode.'),
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            // Single tap only: no onDoubleTap here, so the tap fires instantly
-            // (no ~300ms disambiguation wait) and can't open the mic.
             onTap: () {
               if (_emergency.isCountingDown) {
                 _cancelEmergency();
@@ -866,6 +886,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 _takePicture();
               }
             },
+            // Double-tap = speak a question first — ONLY in Read & Explain
+            // (index 1). Registering it only for that mode keeps the plain
+            // capture tap in Explore instant (no ~300ms disambiguation wait).
+            onDoubleTap: _selectedIndex == 1 ? _askThenCapture : null,
             // Long-press is the eyes-free way to reach emergency without voice.
             onLongPress: _triggerEmergencySOS,
             onHorizontalDragEnd: (d) {

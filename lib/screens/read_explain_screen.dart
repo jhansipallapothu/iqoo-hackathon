@@ -9,6 +9,7 @@ import '../services/config_service.dart';
 import '../services/speech_config.dart';
 import '../services/hardware_keys.dart';
 import '../services/emergency_service.dart';
+import '../services/voice_prompt.dart';
 import '../services/read_explain_logic.dart';
 
 /// Two-stage read flow. Fast path (ML Kit OCR) speaks the raw text in a beat;
@@ -143,6 +144,52 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
     await _offerPayment();
   }
 
+  /// Double-tap the result → speak a follow-up question about the same
+  /// document, and re-run the explanation for it over the OCR text we have.
+  Future<void> _askFollowUp() async {
+    if (_stage == _Stage.reading || _stage == _Stage.explaining) return;
+    if (_ocrText.isEmpty) {
+      await _speak('There is no text to ask about. Capture again.');
+      return;
+    }
+    final q = await VoicePrompt.ask(announce: _speak);
+    if (!mounted) return;
+    if (q == null) {
+      await _speak('Voice input is not available on this phone.');
+      return;
+    }
+    if (q.isEmpty) {
+      await _speak("Didn't catch that.");
+      return;
+    }
+    await _speak('You asked: $q');
+    setState(() {
+      _explanation.clear();
+      _stage = _Stage.explaining;
+    });
+    final type = classifyDocument(_ocrText);
+    final full = await _ai.explain(
+      explainPrompt(type, _ocrText, userQuestion: q),
+      onSentence: (s) {
+        if (!mounted) return;
+        setState(() => _explanation.write('$s '));
+        _speak(s);
+        _spokenFull += ' $s';
+      },
+    );
+    if (!mounted) return;
+    if (full == null || full.trim().isEmpty) {
+      final fb = fallbackSentence(type, _ocrText);
+      setState(() => _stage = _Stage.failed);
+      if (_explanation.isEmpty) {
+        await _speak(fb);
+        _spokenFull += ' $fb';
+      }
+    } else {
+      setState(() => _stage = _Stage.done);
+    }
+  }
+
   /// Bill carried a UPI payee → tell the user, and arm long-press to pay.
   Future<void> _offerPayment() async {
     final uri = _payUri;
@@ -229,9 +276,11 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
         button: true,
         liveRegion: true,
         label: _statusLabel,
+        hint: 'Double-tap to ask a follow-up question about this document.',
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: _repeat,
+          onDoubleTap: _askFollowUp,
           onLongPress: _payUri != null ? _payBill : null,
           child: ListView(
             padding: const EdgeInsets.all(16),

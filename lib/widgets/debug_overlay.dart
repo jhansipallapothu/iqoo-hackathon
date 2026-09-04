@@ -73,8 +73,12 @@ class _DebugOverlayState extends State<DebugOverlay> with WidgetsBindingObserver
   }
 
   Future<void> _loadCacheStats() async {
-    final stats = await _cacheService.getCacheStats();
-    if (mounted) setState(() => _cacheStats = stats);
+    try {
+      final stats = await _cacheService.getCacheStats();
+      if (mounted) setState(() => _cacheStats = stats);
+    } catch (e) {
+      debugPrint('DebugOverlay cache stats failed: $e'); // never crash a frame
+    }
   }
 
   void _listenConnectivity() {

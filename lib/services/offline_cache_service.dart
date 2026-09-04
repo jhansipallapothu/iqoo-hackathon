@@ -110,6 +110,9 @@ class OfflineCacheService {
 
   // Get cache stats for debug overlay
   Future<Map<String, dynamic>> getCacheStats() async {
+    // The debug overlay calls this from initState, before homepage's un-awaited
+    // initialize() has finished — _prefs! would throw and crash the first frame.
+    if (!_initialized) await initialize();
     final keys = _prefs!.getKeys().where((k) => k.startsWith('cache_')).toList();
     int totalSize = 0;
     
@@ -126,6 +129,7 @@ class OfflineCacheService {
   }
 
   Future<void> clearCache() async {
+    if (!_initialized) await initialize();
     final keys = _prefs!.getKeys().where((k) => k.startsWith('cache_')).toList();
     for (final key in keys) {
       await _prefs!.remove(key);
