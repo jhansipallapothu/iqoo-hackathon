@@ -38,10 +38,13 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
   final _tts = FlutterTts();
 
   StreamSubscription<String>? _keySub;
+  static const _phone = MethodChannel('aiforall/phone');
+
   _Stage _stage = _Stage.reading;
   String _ocrText = '';
   final _explanation = StringBuffer();
   String _spokenFull = ''; // everything said, for Volume-Down repeat
+  String? _payUri; // set when a bill prints a UPI payee; enables "pay this bill"
 
   @override
   void initState() {
@@ -99,6 +102,7 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
     setState(() => _stage = _Stage.ocrDone);
 
     final type = classifyDocument(_ocrText);
+    if (type == DocType.bill) _payUri = buildUpiUri(_ocrText);
 
     if (_ocrText.isEmpty) {
       final msg = fallbackSentence(DocType.generic, '');
@@ -141,6 +145,44 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
       if (toCache.isNotEmpty) {
         await _cache.cacheResponse(prompt: 're:$hash', response: toCache);
       }
+    }
+
+    await _offerPayment();
+  }
+
+  /// Bill carried a UPI payee → tell the user, and arm long-press to pay.
+  Future<void> _offerPayment() async {
+    final uri = _payUri;
+    if (uri == null || !mounted) return;
+    final am = Uri.parse(uri).queryParameters['am'];
+    final offer = am != null
+        ? 'This bill can be paid by U P I. Press and hold anywhere to pay $am rupees.'
+        : 'This bill lists a U P I ID. Press and hold anywhere to pay it.';
+    setState(() {}); // reveal the on-screen Pay button for a sighted helper
+    await _speak(offer);
+    _spokenFull += ' $offer';
+  }
+
+  /// Hands the `upi://pay` link to the user's UPI app, which shows payee +
+  /// amount and requires the UPI PIN. We never touch the payment itself.
+  Future<void> _payBill() async {
+    final uri = _payUri;
+    if (uri == null) return;
+    final q = Uri.parse(uri).queryParameters;
+    final am = q['am'], pa = q['pa'] ?? '';
+    HapticFeedback.mediumImpact();
+    await _tts.stop();
+    // Speak the amount + payee to completion before the UPI app takes focus.
+    await _tts.awaitSpeakCompletion(true);
+    await _tts.speak(am != null
+        ? 'Opening your payment app to pay $am rupees to $pa. It will ask for your U P I PIN.'
+        : 'Opening your payment app to pay $pa. It will ask for the amount and your PIN.');
+    await _tts.awaitSpeakCompletion(false);
+    try {
+      final ok = await _phone.invokeMethod<bool>('payUpi', {'uri': uri}) ?? false;
+      if (!ok && mounted) await _speak('No U P I app is installed on this phone.');
+    } on PlatformException {
+      if (mounted) await _speak('Could not open a payment app.');
     }
   }
 
@@ -197,6 +239,7 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: _repeat,
+          onLongPress: _payUri != null ? _payBill : null,
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -228,6 +271,27 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
                   ),
                 ),
               ),
+              if (_payUri != null) ...[
+                const SizedBox(height: 12),
+                Builder(builder: (_) {
+                  final am = Uri.parse(_payUri!).queryParameters['am'];
+                  final label = am != null ? 'Pay ₹$am' : 'Pay this bill';
+                  return Semantics(
+                    button: true,
+                    label: '$label. Also: press and hold anywhere on the screen.',
+                    child: FilledButton.icon(
+                      onPressed: _payBill,
+                      icon: const Icon(Icons.payments),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(64),
+                        textStyle: const TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      label: Text(label),
+                    ),
+                  );
+                }),
+              ],
               const SizedBox(height: 12),
               Row(
                 children: [

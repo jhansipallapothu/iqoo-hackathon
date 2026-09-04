@@ -75,6 +75,18 @@ class MainActivity : FlutterActivity() {
                         }
                         result.success(opened)
                     }
+                    // "Pay this bill": hand a upi://pay link to whatever UPI app
+                    // the user has. That app shows payee + amount and demands the
+                    // UPI PIN on a secure keyboard we cannot see — the payment
+                    // never passes through this app.
+                    "payUpi" -> {
+                        val uri = call.argument<String>("uri")
+                        if (uri.isNullOrBlank() || !uri.startsWith("upi://")) {
+                            result.error("bad_uri", "Not a upi:// link", null)
+                        } else {
+                            result.success(openUpi(uri))
+                        }
+                    }
                     "hasCallPermission" -> result.success(hasCallPermission())
                     "requestCallPermission" -> {
                         ActivityCompat.requestPermissions(
@@ -85,6 +97,25 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    /**
+     * Shows the "Pay with" chooser for a upi://pay link. A chooser every time:
+     * there is no reliable "default UPI app", and a blind user must not silently
+     * pay from the wrong account. Returns false if no UPI app is installed.
+     */
+    private fun openUpi(uri: String): Boolean {
+        val view = Intent(Intent.ACTION_VIEW, Uri.parse(uri))
+        if (view.resolveActivity(packageManager) == null) return false
+        return try {
+            startActivity(
+                Intent.createChooser(view, "Pay with")
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+            true
+        } catch (e: Exception) {
+            false
+        }
     }
 
     private fun hasCallPermission() = ContextCompat.checkSelfPermission(

@@ -75,6 +75,40 @@ String explainPrompt(DocType type, String ocrText, {String? userQuestion}) {
   return '$base $ask\n\nText from the document:\n$ocrText';
 }
 
+/// If this looks like a bill that prints a UPI payee, build a `upi://pay`
+/// deep link. The user's own UPI app then shows payee + amount and demands the
+/// UPI PIN — we never see or move the money. Returns null when there is no
+/// payee to pay, so the caller only offers "pay" when it can actually work.
+///
+/// ponytail: reads a VPA printed as plain text. Bills that carry only a UPI
+/// *QR* need ML Kit barcode scanning — add that if the Sept spike shows plain
+/// VPAs are rare on real bills.
+String? buildUpiUri(String ocrText) {
+  // UPI handle: name@bank. The bank suffix is letters only and not followed by
+  // a dot, so an e-mail (`billing@company.com`) is rejected.
+  final vpa = RegExp(r'(?<![\w.@])[A-Za-z0-9.\-_]{2,}@[A-Za-z]{2,}(?![A-Za-z.])')
+      .firstMatch(ocrText);
+  if (vpa == null) return null;
+
+  final params = <String, String>{
+    'pa': vpa.group(0)!,
+    'pn': 'Biller',
+    'cu': 'INR',
+  };
+
+  final amt = RegExp(
+    r'(?:₹|rs\.?|inr)\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)',
+    caseSensitive: false,
+  ).firstMatch(ocrText);
+  final n = amt == null ? null : double.tryParse(amt.group(1)!.replaceAll(',', ''));
+  if (n != null && n > 0) params['am'] = n.toStringAsFixed(2);
+
+  final q = params.entries
+      .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
+      .join('&');
+  return 'upi://pay?$q';
+}
+
 /// First complete sentence, so speech can start before generation finishes.
 /// Returns null until at least one sentence terminator has arrived.
 String? firstSentence(String partial) {
@@ -108,6 +142,17 @@ void main() {
 
   assert(explainPrompt(DocType.medicine, 'x').contains('dose limit'));
   assert(collapseWhitespace(' a \n\n b  ') == 'a b');
+
+  // UPI deep link: only when a real VPA is present; amount is optional.
+  assert(buildUpiUri('EB bill. Pay to tneb@okhdfcbank. Amount due Rs. 1,240.50') ==
+      'upi://pay?pa=tneb%40okhdfcbank&pn=Biller&cu=INR&am=1240.50');
+  assert(buildUpiUri('UPI ID 9876543210@ybl total ₹840') ==
+      'upi://pay?pa=9876543210%40ybl&pn=Biller&cu=INR&am=840.00');
+  assert(buildUpiUri('Pay at counter to water.board@sbi') ==
+      'upi://pay?pa=water.board%40sbi&pn=Biller&cu=INR');
+  assert(buildUpiUri('Queries: billing@company.com, amount due Rs. 500') == null);
+  assert(buildUpiUri('Electricity bill, amount due Rs. 840, no online payment') ==
+      null);
 
   print('read_explain_logic: all checks passed');
 }
