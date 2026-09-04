@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
 import '../services/on_device_llm_service.dart';
 import '../services/browsing_service.dart';
@@ -77,8 +78,12 @@ class AIService {
           .join('') ?? '';
 
       return _formatResponse(text, browsingContext);
-    } catch (e) {
-      return _localization.tr('error_occurred') + ': $e';
+    } catch (e, st) {
+      // Do NOT return the raw exception as if it were the assistant's reply —
+      // the chat screen would render a stack trace. Log it, hand back null so
+      // the caller shows a clean "couldn't reach the assistant" message.
+      debugPrint('AIService.generateResponse Gemini call failed: $e\n$st');
+      return null;
     }
   }
 
@@ -124,8 +129,10 @@ class AIService {
       if (rest.isNotEmpty) onSentence?.call(rest);
       final full = buf.toString().trim();
       return full.isEmpty ? null : full;
-    } catch (_) {
-      // Partial output is still useful; hand back whatever arrived.
+    } catch (e) {
+      // Partial output is still useful; hand back whatever arrived. Log the
+      // real cause (bad key / model / network) — the caller only sees null.
+      debugPrint('AIService.explain Gemini stream failed: $e');
       final partial = buf.toString().trim();
       return partial.isEmpty ? null : partial;
     }

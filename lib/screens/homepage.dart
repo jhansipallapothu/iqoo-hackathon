@@ -164,24 +164,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final mode = int.tryParse(status.split(':')[1]) ?? 0;
       _captureImageByVoice(mode);
     } else if (status.startsWith('switch_mode:')) {
-      final mode = int.tryParse(status.split(':')[1]) ?? 0;
+      final mode = (int.tryParse(status.split(':')[1]) ?? 0).clamp(0, _modeCount - 1);
       setState(() => _selectedIndex = mode);
       _announceModeChange(mode);
-    } else if (status.startsWith('directions:')) {
-      final dest = status.split(':')[1];
-      _showSnackBar('Navigation to $dest not yet implemented');
-    } else if (status.startsWith('web_search:')) {
-      final query = status.split(':')[1];
-      _showSnackBar('Web search: $query');
-    } else if (status == 'repeat_response') {
-      _showSnackBar('Repeating last response');
     } else if (status == 'open_settings') {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
     } else if (status == 'emergency') {
       _triggerEmergencySOS();
-    } else if (status.startsWith('ai_query:')) {
-      final query = status.split(':')[1];
-      _sendAIQuery(query);
+    } else if (status.startsWith('directions:') ||
+        status.startsWith('web_search:') ||
+        status == 'repeat_response' ||
+        status.startsWith('ai_query:')) {
+      // These voice outcomes have no working destination. A snackbar is
+      // invisible to a blind user — say so out loud instead of silently.
+      _voiceAssistant.announce('That is not available yet.');
     }
   }
 

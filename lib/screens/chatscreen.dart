@@ -441,10 +441,10 @@ class _ChatscreenState extends State<Chatscreen> {
         prompt: question,
         images: images,
         isTamil: _localization.isTamil,
-        enableBrowsing: _configService.appConfig.features.onDeviceLLM == false || true, // Enable for both
+        enableBrowsing: true,
       );
 
-      if (response != null) {
+      if (response != null && response.trim().isNotEmpty) {
         // Cache the response
         if (_configService.appConfig.features.offlineMode) {
           await _cacheService.cacheResponse(
@@ -456,10 +456,13 @@ class _ChatscreenState extends State<Chatscreen> {
         }
         _handleResponse(response);
       } else {
-        _handleResponse(_localization.tr('error_occurred') + ': No response');
+        _handleResponse(
+            "I couldn't reach the assistant. Check the internet connection and try again.");
       }
     } catch (e) {
-      _handleResponse('${_localization.tr('error_occurred')}: $e');
+      debugPrint('chatscreen generateResponse threw: $e');
+      _handleResponse(
+          "Something went wrong reaching the assistant. Please try again.");
     }
   }
 
