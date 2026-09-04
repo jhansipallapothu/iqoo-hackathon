@@ -132,13 +132,49 @@ Assume one live failure. The fast path carries it.
 
 ---
 
+## 5-minute demo script (stage) + video walkthrough
+
+The 90-second version above is the elevator pitch. This is the full run for a
+5+ minute slot and the submission video. Same beats, more of them.
+
+**Two framings — say the right one:**
+- **Stage (Sept 12–13):** "Airplane mode is on." On-device ML Kit + Gemma 2B.
+- **Submission video (now):** "This is the cloud prototype." Cloud Gemini.
+  **Never say offline in the video.** The claim becomes true at the event.
+
+Assume one live failure somewhere. The fast path carries it — turn it into a
+feature demo when it happens.
+
+| Time | Beat | What you do / what it says |
+| --- | --- | --- |
+| **0:00–0:40** | Problem | A blind person hands their medicine strip, their bank letter, their phone to a sighted relative to know what it says — every day, a loss of privacy and independence. On a phone with no signal, nothing today helps them. |
+| **0:40–1:10** | Eyes-free launch | Hold the power button → app opens as the device Assistant, speaks *"Ready. Point at a document or medicine."* Show the gestures by using them: swipe to switch mode (spoken confirmation), explain there is no button to find. |
+| **1:10–2:00** | Read & Explain — medicine | Volume Up. Haptic + shutter. OCR speaks in <1 s: *"Crocin 650mg. Expiry 01/2026."* Then the model streams: *"Paracetamol, for fever and pain. Maximum four tablets a day. Do not take more."* Contrast out loud: *"a screen reader stops at the first line."* |
+| **2:00–2:40** | Read & Explain — government notice | Volume Up. Dense official wording in; one action out: *"Ration card applications open September 20. Bring Aadhaar and an income certificate to the office."* *"That was four paragraphs. It told you the one thing you have to do."* |
+| **2:40–3:25** | Read & Explain — bill + pay | A utility bill. It reads the amount and due date, detects the UPI payee printed on it: *"This bill can be paid by U P I. Press and hold anywhere to pay 840 rupees."* Long-press → it speaks the amount + payee → the user's own UPI app opens for the PIN. *"The payment never touches our app. We removed the step where someone else has to read the bill and type the amount."* |
+| **3:25–4:20** | Messages + fraud protection | Open the inbox. It reads today's messages, tags each — OTP, transaction, spam — all offline. Hits a scam SMS: **warning first**, refuses to read the link aloud, refuses to read the OTP digits: *"This looks like a scam. It rushes you and contains a link. Do not open it. Ask someone you trust."* Double-tap to mark the electricity-bill reminder important; *"read important messages"* replays just that one. |
+| **4:20–4:45** | Explore *(only if the spike proved it)* | Point at the table: *"What's in my hand?"* → spoken description. **If on-device multimodal isn't fast enough, show this on cloud in the video and say so — do not fake it on stage.** |
+| **4:45–5:05** | Rehearsed failure | Deliberately stall the model on one capture. *"The OCR answer was already spoken. Volume Down repeats the last safe answer. The user is never left in silence."* The failure is the demo. |
+| **5:05–5:30** | Close | *"Everything you heard ran on this phone — the OCR, the language model, the speech, the scam detection. No cloud, no Wi-Fi, no subscription, so it works anywhere on a phone someone already owns. It doesn't just read the label. It tells you what it means — and warns you when something is trying to cheat you."* |
+
+### Video walkthrough — differences from the live run
+
+- **Caption every spoken line on screen** — judges may watch muted, and captions are the accessible choice anyway.
+- Show the **airplane-mode toggle** (event) / a **"cloud prototype" title card** (submission) on screen so the claim is visible, not just spoken.
+- Picture-in-picture: the physical phone + the real object (strip, bill, letter) in frame — proves it's live, not a mockup.
+- Keep it one continuous take per feature. No cuts inside a capture→answer — the latency *is* the point.
+- **Recorded on the Redmi:** `speech_to_text` is dead there, so no voice-input beats (double-tap-to-ask, Explore voice chat) in this video. Volume keys, tap, swipe, long-press all work.
+- Screen-record with on-device audio capture so the TTS is in the track, not a room mic.
+
+---
+
 ## Judging criteria map
 
 | Criterion | Weight | Covered by |
 | --- | --- | --- |
 | End product quality | 30% | Two-stage architecture with a guaranteed floor; small scope, finished |
-| Novelty & impact | 20% | Explains rather than reads — medicine dosage, expiry, what a notice requires you to do |
-| Creative phone use | 15% | Volume keys, ASSIST, shake, torch, haptics, camera, mic, GPS |
+| Novelty & impact | 20% | Explains rather than reads — dosage ceiling, expiry, what a notice requires; offline scam warnings for the users scams target most |
+| Creative phone use | 15% | Volume keys, ASSIST, shake, torch, haptics, camera, mic, GPS, UPI deep link |
 | Technical depth | 15% | On-device OCR + LLM pipeline, streaming TTS, timeout/fallback design, NPU benchmarking |
 | Office Kit usage | 10% | Continuous use during Green Light |
 | Demo & presentation | 10% | Airplane mode, high-stakes objects, rehearsed failure recovery |
@@ -155,3 +191,5 @@ Assume one live failure. The fast path carries it.
 - [ ] Verify `flutter build apk --release` (only debug tested so far)
 - [ ] Find one blind tester for 20 minutes before Sept 12 — worth more than any feature
 - [ ] Rehearse the 90-second script ten times, including the failure branch
+- [ ] Rehearse the 5-minute script five times; time each beat, cut anything that runs long
+- [ ] Record the video walkthrough with captions (cloud framing, no offline claim)
