@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 /// One place to tune how the app sounds.
 ///
@@ -8,6 +9,12 @@ import 'package:flutter_tts/flutter_tts.dart';
 /// voices. Values are deliberately in one file: four screens/services used to
 /// each hardcode their own, which drifted.
 class SpeechConfig {
+  /// One shared engine each. Android allows a single active SpeechRecognizer,
+  /// and multiple FlutterTts instances speak over each other — every screen and
+  /// service used to `new` its own. Use these instead.
+  static final FlutterTts tts = FlutterTts();
+  static final stt.SpeechToText speech = stt.SpeechToText();
+
   /// flutter_tts on Android does NOT map 1.0 to the engine's natural pace — its
   /// scale runs hot, so 1.0 already sounds rushed and ~0.5 is a normal talking
   /// speed. iOS uses 0.0–1.0 with ~0.5 as normal.

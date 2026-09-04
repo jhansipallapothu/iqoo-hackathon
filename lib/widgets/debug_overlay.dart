@@ -94,15 +94,15 @@ class _DebugOverlayState extends State<DebugOverlay> with WidgetsBindingObserver
   Widget build(BuildContext context) {
     if (!widget.enabled) return widget.child;
 
-    return GestureDetector(
-      onDoubleTap: _toggleOverlay,
-      child: Stack(
-        children: [
-          widget.child,
-          if (_showOverlay) _buildOverlay(),
-          if (widget.enabled && !_showOverlay) _buildIndicator(),
-        ],
-      ),
+    // No full-screen gesture here: a stray double-tap must not raise the debug
+    // panel over the live UI, and it must not compete with the viewfinder's
+    // own gestures. Open it only via the small corner chip (_buildIndicator).
+    return Stack(
+      children: [
+        widget.child,
+        if (_showOverlay) _buildOverlay(),
+        if (widget.enabled && !_showOverlay) _buildIndicator(),
+      ],
     );
   }
 

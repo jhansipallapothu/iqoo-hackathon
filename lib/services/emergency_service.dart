@@ -21,7 +21,7 @@ class EmergencyService {
   static const _prefsKey = 'emergency_contact';
   static const countdownSeconds = 5;
 
-  final FlutterTts _tts = FlutterTts();
+  final FlutterTts _tts = SpeechConfig.tts;
   final GPSService _gps = GPSService();
   final LocalizationService _localization = LocalizationService();
 

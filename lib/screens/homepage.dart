@@ -5,7 +5,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter/services.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../services/assist_setup.dart';
 import '../services/gps_service.dart';
 import '../services/config_service.dart';
@@ -45,11 +44,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final OfflineCacheService _cacheService = OfflineCacheService();
   final VoiceAssistantService _voiceAssistant = VoiceAssistantService();
   final Connectivity _connectivity = Connectivity();
-  final FlutterTts _tts = FlutterTts();
+  final FlutterTts _tts = SpeechConfig.tts;
   final EmergencyService _emergency = EmergencyService();
-  final stt.SpeechToText _stt = stt.SpeechToText();
-  bool _sttReady = false;
-  bool _askingPrompt = false;
   bool _showOnboarding = false;
   // True once 'onboarding_seen' has been read. Until then _announceReady() must
   // stay quiet, or on a first run it races the tutorial and clips step 1.
@@ -97,10 +93,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   void _repeatSpoken() {
     final text = SpokenText.last;
+    _tts.stop();
     if (text == null || text.isEmpty) {
-      _announceReady();
+      _tts.speak(_localization.isTamil
+          ? 'மீண்டும் சொல்ல எதுவும் இல்லை.'
+          : 'Nothing to repeat yet.');
     } else {
-      _tts.stop();
       _tts.speak(text);
     }
   }
@@ -143,24 +141,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     unawaited(_voiceAssistant
         .initialize()
         .catchError((e) => debugPrint('Voice assistant init failed: $e')));
-    unawaited(_initStt());
-  }
-
-  Future<void> _initStt() async {
-    try {
-      _sttReady = await _stt.initialize(
-        onStatus: (s) {
-          if ((s == 'done' || s == 'notListening') && mounted) {
-            setState(() => _askingPrompt = false);
-          }
-        },
-        onError: (_) {
-          if (mounted) setState(() => _askingPrompt = false);
-        },
-      );
-    } catch (_) {
-      _sttReady = false;
-    }
   }
 
   void _setupVoiceAssistantCallbacks() {
@@ -425,7 +405,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _gpsService.dispose();
     _voiceAssistant.dispose();
     _keySub?.cancel();
-    _stt.cancel();
     _tts.stop();
     super.dispose();
   }
@@ -476,42 +455,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   String _modeInstruction(bool isTamil) =>
       isTamil ? 'தட்டவும் · ஸ்வைப் செய்து மாற்றவும்' : 'Tap anywhere · swipe to switch';
-
-  /// Double-tap: speak a specific question, then capture and answer *that*
-  /// instead of the mode's default prompt.
-  Future<void> _askThenCapture() async {
-    if (_isProcessing || _askingPrompt) return;
-    if (!_sttReady) {
-      _voiceAssistant.announce(_localization.isTamil
-          ? 'இந்த சாதனத்தில் குரல் உள்ளீடு இல்லை. வழக்கமாக படம் எடுக்கிறது.'
-          : 'Voice input is not available here. Taking a normal photo.');
-      return _takePicture();
-    }
-    setState(() => _askingPrompt = true);
-    HapticFeedback.mediumImpact();
-    _voiceAssistant.announce(
-        _localization.isTamil ? 'உங்கள் கேள்வியைச் சொல்லுங்கள்' : 'Ask your question');
-    await _stt.listen(
-      onResult: (r) {
-        if (!r.finalResult) return;
-        final q = r.recognizedWords.trim();
-        if (mounted) setState(() => _askingPrompt = false);
-        if (q.isEmpty) {
-          _voiceAssistant.announce(_localization.isTamil
-              ? 'கேட்கவில்லை.'
-              : "Didn't catch that.");
-          return;
-        }
-        _takePicture(question: q);
-      },
-      listenFor: const Duration(seconds: 15),
-      pauseFor: const Duration(seconds: 3),
-      listenOptions: stt.SpeechListenOptions(
-        listenMode: stt.ListenMode.dictation,
-        partialResults: false,
-      ),
-    );
-  }
 
   Future<void> _takePicture({String? question}) async {
     if (_isProcessing) return;
@@ -908,10 +851,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ? 'படம் எடுக்க எங்கும் தட்டவும்'
               : 'Tap anywhere to take a photo',
           hint: isTamil
-              ? 'கேள்வி கேட்க இருமுறை தட்டவும். அவசரத்திற்கு நீண்ட நேரம் அழுத்தவும்.'
-              : 'Double-tap to ask a question. Long-press for emergency.',
+              ? 'அவசரத்திற்கு நீண்ட நேரம் அழுத்தவும். ஸ்வைப் செய்து மோடு மாற்றவும்.'
+              : 'Long-press for emergency. Swipe to change mode.',
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
+            // Single tap only: no onDoubleTap here, so the tap fires instantly
+            // (no ~300ms disambiguation wait) and can't open the mic.
             onTap: () {
               if (_emergency.isCountingDown) {
                 _cancelEmergency();
@@ -919,15 +864,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 _takePicture();
               }
             },
-            // Double-tap = speak a specific question before capturing.
-            onDoubleTap: () {
-              if (!_emergency.isCountingDown && !_isProcessing) {
-                _askThenCapture();
-              }
-            },
             // Long-press is the eyes-free way to reach emergency without voice.
             onLongPress: _triggerEmergencySOS,
             onHorizontalDragEnd: (d) {
+              // A swipe during the countdown aborts it, like a tap does.
+              if (_emergency.isCountingDown) {
+                _cancelEmergency();
+                return;
+              }
               final v = d.primaryVelocity ?? 0;
               if (v.abs() < 200) return;
               final next = (_selectedIndex + (v < 0 ? 1 : -1))

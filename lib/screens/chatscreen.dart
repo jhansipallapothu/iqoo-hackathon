@@ -15,6 +15,7 @@ import '../services/offline_cache_service.dart';
 import '../services/config_service.dart';
 import '../services/hardware_keys.dart';
 import '../services/speech_config.dart';
+import '../services/emergency_service.dart';
 
 class Chatscreen extends StatefulWidget {
   final String? imagePath;
@@ -37,8 +38,8 @@ class _ChatscreenState extends State<Chatscreen> {
   final LocalizationService _localization = LocalizationService();
   final OfflineCacheService _cacheService = OfflineCacheService();
   final ConfigService _configService = ConfigService();
-  final FlutterTts _tts = FlutterTts();
-  final stt.SpeechToText _stt = stt.SpeechToText();
+  final FlutterTts _tts = SpeechConfig.tts;
+  final stt.SpeechToText _stt = SpeechConfig.speech;
   StreamSubscription<String>? _keySub;
 
   List<ChatMessage> messages = [];
@@ -64,9 +65,15 @@ class _ChatscreenState extends State<Chatscreen> {
   @override
   void initState() {
     super.initState();
-    // Either volume key re-speaks the last answer while this screen is open.
+    // Either volume key re-speaks the last answer — or aborts a running
+    // emergency countdown (it can be armed from any screen).
     _keySub = HardwareKeys.stream.listen((_) {
-      if (ModalRoute.of(context)?.isCurrent ?? true) _speakLastResponse();
+      if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
+      if (EmergencyService().isCountingDown) {
+        EmergencyService().cancel();
+        return;
+      }
+      _speakLastResponse();
     });
     _initializeServices();
     if (widget.imagePath != null) {

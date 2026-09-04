@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:another_telephony/telephony.dart' hide SmsType;
 import '../services/sms_classifier.dart';
 import '../services/offline_cache_service.dart';
 import '../services/speech_config.dart';
 import '../services/hardware_keys.dart';
+import '../services/emergency_service.dart';
 
 /// Reads the SMS inbox aloud for a blind user, one message at a time, tagged by
 /// type and screened for scams. After each message there is a short window to
@@ -36,7 +36,7 @@ class _InboxScreenState extends State<InboxScreen> {
   static const _maxMessages = 15;
   static const _markWindow = Duration(milliseconds: 2500);
 
-  final _tts = FlutterTts();
+  final _tts = SpeechConfig.tts;
   final _cache = OfflineCacheService();
   final _telephony = Telephony.instance;
 
@@ -52,7 +52,12 @@ class _InboxScreenState extends State<InboxScreen> {
   void initState() {
     super.initState();
     _keySub = HardwareKeys.stream.listen((_) {
-      if (ModalRoute.of(context)?.isCurrent ?? true) _repeat();
+      if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
+      if (EmergencyService().isCountingDown) {
+        EmergencyService().cancel();
+        return;
+      }
+      _repeat();
     });
     _run();
   }

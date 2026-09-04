@@ -2,13 +2,13 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import '../services/ocr_service.dart';
 import '../services/ai_service.dart';
 import '../services/localization_service.dart';
 import '../services/config_service.dart';
 import '../services/speech_config.dart';
 import '../services/hardware_keys.dart';
+import '../services/emergency_service.dart';
 import '../services/read_explain_logic.dart';
 
 /// Two-stage read flow. Fast path (ML Kit OCR) speaks the raw text in a beat;
@@ -33,7 +33,7 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
   final _ai = AIService();
   final _localization = LocalizationService();
   final _config = ConfigService();
-  final _tts = FlutterTts();
+  final _tts = SpeechConfig.tts;
 
   StreamSubscription<String>? _keySub;
   static const _phone = MethodChannel('aiforall/phone');
@@ -48,7 +48,12 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
   void initState() {
     super.initState();
     _keySub = HardwareKeys.stream.listen((_) {
-      if (ModalRoute.of(context)?.isCurrent ?? true) _repeat();
+      if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
+      if (EmergencyService().isCountingDown) {
+        EmergencyService().cancel();
+        return;
+      }
+      _repeat();
     });
     _run();
   }

@@ -52,8 +52,8 @@ class VoiceAssistantService {
   factory VoiceAssistantService() => _instance;
   VoiceAssistantService._internal();
 
-  final stt.SpeechToText _speech = stt.SpeechToText();
-  final FlutterTts _tts = FlutterTts();
+  final stt.SpeechToText _speech = SpeechConfig.speech;
+  final FlutterTts _tts = SpeechConfig.tts;
   final AIService _aiService = AIService();
   final GPSService _gpsService = GPSService();
   final LocalizationService _localization = LocalizationService();
@@ -120,8 +120,9 @@ class VoiceAssistantService {
       // Help
       (RegExp(r'(help|what can you do|commands|how to use)', caseSensitive: false), VoiceCommandType.help),
 
-      // Emergency
-      (RegExp(r'(emergency|help me|sos|danger|urgent)', caseSensitive: false), VoiceCommandType.emergency),
+      // Emergency — deliberately narrow. "help me" / "urgent" / "danger" are
+      // said in ordinary conversation; an accidental match arms a call.
+      (RegExp(r'\b(emergency|s\.?\s?o\.?\s?s)\b', caseSensitive: false), VoiceCommandType.emergency),
 
       // Open an installed app by (mis-heard) name. LAST on purpose: this
       // pattern is broad ("open/launch/start <anything>"), so every reserved
@@ -167,8 +168,8 @@ class VoiceAssistantService {
       // Help
       (RegExp(r'(உதவி|நீங்கள் என்ன செய்யலாம்|குறிப்புகள்|எப்படி பயன்படுத்த)', caseSensitive: false), VoiceCommandType.help),
       
-      // Emergency
-      (RegExp(r'(அவசர|உதவி|SOS|ஆபத்து|அவசரம்)', caseSensitive: false), VoiceCommandType.emergency),
+      // Emergency — narrow (see 'en' note). Dropped உதவி ("help"), ஆபத்து.
+      (RegExp(r'\b(அவசரம்|அவசர|SOS)\b', caseSensitive: false), VoiceCommandType.emergency),
 
       // Open an installed app by name — LAST, broad pattern (see 'en' note).
       (RegExp(r'\b(திற|தொடங்கு)\b\s+(.+)', caseSensitive: false), VoiceCommandType.openApp),
@@ -575,7 +576,10 @@ class VoiceAssistantService {
   }
 
   Future<void> _triggerEmergency() async {
-    _announce('Emergency mode activated. Contacting emergency services...', interrupt: true);
+    // Calls the user's own nominated contact after a cancellable countdown —
+    // never 112/108. The homepage speaks the countdown + "tap to cancel".
+    _announce('Starting the emergency countdown. Tap the screen to stop it.',
+        interrupt: true);
     HapticFeedback.heavyImpact();
     onStatusUpdate?.call('emergency');
   }

@@ -17,7 +17,7 @@ class SmsService {
   SmsService._internal();
 
   final Telephony _telephony = Telephony.instance;
-  final FlutterTts _tts = FlutterTts();
+  final FlutterTts _tts = SpeechConfig.tts;
   final LocalizationService _localization = LocalizationService();
   final ConfigService _config = ConfigService();
   bool _started = false;
