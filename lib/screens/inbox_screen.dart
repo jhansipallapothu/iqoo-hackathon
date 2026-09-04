@@ -72,9 +72,8 @@ class _InboxScreenState extends State<InboxScreen> {
 
   Future<void> _run() async {
     await _cache.initialize();
+    // apply() sets sequential mode — one line at a time, `await speak()` blocks.
     await SpeechConfig.apply(_tts);
-    await _tts.setQueueMode(1);
-    await _tts.awaitSpeakCompletion(true);
 
     if (!await Permission.sms.request().isGranted) {
       setState(() => _phase = _Phase.denied);

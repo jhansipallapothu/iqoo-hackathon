@@ -27,12 +27,31 @@ class SpeechConfig {
 
   static const double volume = 1.0;
 
-  /// Applies rate/pitch/volume. Always en-US: en-IN is frequently a network-only
-  /// voice on Indian devices — speak() reports success and produces no audio.
+  /// Applies rate/pitch/volume and the **sequential** speech mode: one utterance
+  /// at a time, and `await tts.speak(x)` blocks until x finishes. This is what
+  /// almost every caller wants. Streaming callers must follow with [streaming].
+  ///
+  /// Always en-US: en-IN is frequently a network-only voice on Indian devices —
+  /// speak() reports success and produces no audio.
+  ///
+  /// The mode matters because [tts] is a single shared engine ([SpeechConfig.tts]).
+  /// QUEUE_ADD + awaitSpeakCompletion together make `speak()` NOT block on
+  /// Android, so a screen left in that mode would let the next screen's lines
+  /// stomp each other. Calling apply() on entry resets that.
   static Future<void> apply(FlutterTts tts) async {
     await tts.setLanguage('en-US');
     await tts.setSpeechRate(rate);
     await tts.setPitch(pitch);
     await tts.setVolume(volume);
+    await tts.setQueueMode(0); // QUEUE_FLUSH
+    await tts.awaitSpeakCompletion(true);
+  }
+
+  /// Streaming mode: queue utterances (QUEUE_ADD) and let them play back to back
+  /// without `speak()` blocking. For sentence-by-sentence readout where the
+  /// caller does not await each line. Call [apply] first, then this.
+  static Future<void> streaming(FlutterTts tts) async {
+    await tts.setQueueMode(1); // QUEUE_ADD
+    await tts.awaitSpeakCompletion(false);
   }
 }

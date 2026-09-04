@@ -185,7 +185,8 @@ class _ChatscreenState extends State<Chatscreen> {
   }
 
   Future<void> _setupTTS() async {
-    await _tts.awaitSpeakCompletion(true);
+    // apply() sets sequential mode (QUEUE_FLUSH + await-completion) so a _speak()
+    // finishes before the mic re-opens in voice-chat.
     await SpeechConfig.apply(_tts);
   }
 

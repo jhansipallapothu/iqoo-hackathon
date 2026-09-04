@@ -43,11 +43,11 @@ class EmergencyService {
   /// [onTick] reports seconds remaining so the UI can show it.
   Future<void> trigger({void Function(int)? onTick}) async {
     final number = await getContact();
+    // apply() forces sequential mode (QUEUE_FLUSH + await-completion). Critical
+    // here: the preamble and the "tap to stop" line MUST finish before the
+    // 1-second countdown Timer starts, or the call can be placed before the user
+    // has heard they can cancel. The shared engine may arrive in QUEUE_ADD.
     await SpeechConfig.apply(_tts);
-    // Wait for each sentence to finish before the next stop()/speak(), otherwise
-    // the spoken location — "the useful part even if the call never connects" —
-    // is cut off milliseconds after it starts.
-    await _tts.awaitSpeakCompletion(true);
 
     if (number == null || number.isEmpty) {
       await _speak(_localization.isTamil

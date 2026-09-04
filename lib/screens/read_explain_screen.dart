@@ -69,11 +69,9 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
     await _config.initialize();
     await _localization.initialize();
     await SpeechConfig.apply(_tts);
-    // Queue utterances instead of the flutter_tts default (QUEUE_FLUSH), so the
-    // "Reading" cue, the raw OCR readout, and each streamed explanation sentence
-    // all play in full instead of cutting each other off.
-    await _tts.setQueueMode(1);
-    await _tts.awaitSpeakCompletion(false); // don't block _run on each utterance
+    // Streaming: queue the "Reading" cue, the OCR readout and each explanation
+    // sentence so they play back to back without _run awaiting every one.
+    await SpeechConfig.streaming(_tts);
 
     HapticFeedback.mediumImpact();
     await _speak(_localization.isTamil ? 'படிக்கிறது' : 'Reading');
@@ -167,12 +165,12 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
     final am = q['am'], pa = q['pa'] ?? '';
     HapticFeedback.mediumImpact();
     await _tts.stop();
-    // Speak the amount + payee to completion before the UPI app takes focus.
-    await _tts.awaitSpeakCompletion(true);
+    // Back to sequential so this line finishes before the UPI app takes focus
+    // (the _run flow put the engine in streaming/non-blocking mode).
+    await SpeechConfig.apply(_tts);
     await _tts.speak(am != null
         ? 'Opening your payment app to pay $am rupees to $pa. It will ask for your U P I PIN.'
         : 'Opening your payment app to pay $pa. It will ask for the amount and your PIN.');
-    await _tts.awaitSpeakCompletion(false);
     try {
       final ok = await _phone.invokeMethod<bool>('payUpi', {'uri': uri}) ?? false;
       if (!ok && mounted) await _speak('No U P I app is installed on this phone.');
