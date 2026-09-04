@@ -32,19 +32,52 @@ DocType classifyDocument(String ocrText) {
   return DocType.notice;
 }
 
-/// Spoken fallback when no explanation arrives. Names the document type and
-/// reads what was found, so the user always learns something.
+/// The fact the user is usually hunting for on a strip / bill / notice — an
+/// expiry-or-due date, or a bill amount — so the spoken fallback can lead with
+/// it instead of raw branding text. Null when nothing obvious is present.
+String? keyFact(DocType type, String ocrText) {
+  final date = RegExp(
+    r'\b(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{1,2}[/-]\d{4}|'
+    r'(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s*\d{4})\b',
+    caseSensitive: false,
+  ).firstMatch(ocrText)?.group(0);
+  final amount = RegExp(
+    r'(?:₹|rs\.?|inr)\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)',
+    caseSensitive: false,
+  ).firstMatch(ocrText)?.group(1);
+
+  switch (type) {
+    case DocType.medicine:
+      return date == null ? null : 'Date on the pack: $date.';
+    case DocType.bill:
+      final parts = [
+        if (amount != null) 'Amount: $amount rupees',
+        if (date != null) 'date: $date',
+      ];
+      return parts.isEmpty ? null : '${parts.join(', ')}.';
+    case DocType.notice:
+      return date == null ? null : 'Date mentioned: $date.';
+    case DocType.generic:
+      return null;
+  }
+}
+
+/// Spoken fallback when no explanation arrives. Names the document type, leads
+/// with the key fact if one was found, then reads what was seen — so the user
+/// always learns something.
 String fallbackSentence(DocType type, String ocrText) {
   final trimmed = collapseWhitespace(ocrText);
   final snippet =
       trimmed.length > 200 ? '${trimmed.substring(0, 200)}…' : trimmed;
+  final fact = keyFact(type, ocrText);
+  final f = fact == null ? '' : '$fact ';
   switch (type) {
     case DocType.medicine:
-      return 'This looks like medicine packaging. It reads: $snippet';
+      return 'This looks like medicine packaging. ${f}It reads: $snippet';
     case DocType.bill:
-      return 'This looks like a bill. It reads: $snippet';
+      return 'This looks like a bill. ${f}It reads: $snippet';
     case DocType.notice:
-      return 'This looks like an official notice. It reads: $snippet';
+      return 'This looks like an official notice. ${f}It reads: $snippet';
     case DocType.generic:
       return trimmed.isEmpty
           ? 'No readable text found. Try moving closer, or hold the phone steadier.'
@@ -134,6 +167,18 @@ void main() {
   // Empty OCR must still say something useful, never an empty utterance.
   assert(fallbackSentence(DocType.generic, '   ').contains('No readable text'));
   assert(fallbackSentence(DocType.medicine, 'Crocin 650').contains('medicine'));
+
+  // keyFact: lead with the date / amount the user is hunting for.
+  assert(fallbackSentence(DocType.medicine, 'CROCIN 650 Exp. 01/2026 Batch X7')
+      .contains('01/2026'));
+  assert(fallbackSentence(
+          DocType.bill, 'Electricity bill amount due Rs. 840 due date 12/09/2026')
+      .contains('840 rupees'));
+  assert(keyFact(DocType.notice, 'Apply before 20/09/2026 at the office')
+          ?.contains('20/09/2026') ??
+      false);
+  assert(keyFact(DocType.medicine, 'no dates on this pack') == null);
+  assert(keyFact(DocType.generic, 'ignore 01/2026 here') == null);
 
   // Streaming: nothing to speak until a terminator arrives.
   assert(firstSentence('This is parac') == null);

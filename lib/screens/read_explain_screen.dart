@@ -117,6 +117,15 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
     await _speak(lead + _preview(_ocrText));
     _spokenFull = lead + _preview(_ocrText);
 
+    // Very little text usually means blur or a bad angle — a blind user can't
+    // see that. Nudge a retry, but keep going with what we have.
+    if (_ocrText.replaceAll(RegExp(r'\s+'), '').length < 12) {
+      const hint =
+          'That looked partial. Hold the item steady and capture again for more.';
+      await _speak(hint);
+      _spokenFull += ' $hint';
+    }
+
     // --- Slow path: explanation, streamed ---
     setState(() => _stage = _Stage.explaining);
     final full = await _ai.explain(
