@@ -117,10 +117,12 @@ String explainPrompt(DocType type, String ocrText, {String? userQuestion}) {
 /// *QR* need ML Kit barcode scanning — add that if the Sept spike shows plain
 /// VPAs are rare on real bills.
 String? buildUpiUri(String ocrText) {
-  // UPI handle: name@bank. The bank suffix is letters only and not followed by
-  // a dot, so an e-mail (`billing@company.com`) is rejected.
-  final vpa = RegExp(r'(?<![\w.@])[A-Za-z0-9.\-_]{2,}@[A-Za-z]{2,}(?![A-Za-z.])')
-      .firstMatch(ocrText);
+  // UPI handle: name@bank. The bank suffix is letters only; reject a following
+  // ".letter" (an e-mail domain like `billing@company.com`) but allow a plain
+  // sentence period right after the id (`...pay to x@ybl.`).
+  final vpa = RegExp(
+    r'(?<![\w.@])[A-Za-z0-9.\-_]{2,}@[A-Za-z]{2,}(?![A-Za-z])(?!\.[A-Za-z])',
+  ).firstMatch(ocrText);
   if (vpa == null) return null;
 
   final params = <String, String>{
@@ -153,7 +155,8 @@ String? firstSentence(String partial) {
 String collapseWhitespace(String s) =>
     s.replaceAll(RegExp(r'\s+'), ' ').trim();
 
-/// Run: `dart run lib/services/read_explain_logic.dart`
+/// Run: `dart run --enable-asserts lib/services/read_explain_logic.dart`
+/// (plain `dart run` does NOT execute `assert`s — the checks would be no-ops).
 void main() {
   assert(classifyDocument('PARACETAMOL IP 650mg Tablets Exp. 01/2026') ==
       DocType.medicine);

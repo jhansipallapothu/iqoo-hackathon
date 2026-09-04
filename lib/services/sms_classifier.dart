@@ -151,7 +151,8 @@ _Risk _assessRisk(String body, SmsResult base) {
   return const _Risk(SmsRisk.none);
 }
 
-/// Run: `dart run lib/services/sms_classifier.dart`
+/// Run: `dart run --enable-asserts lib/services/sms_classifier.dart`
+/// (plain `dart run` does NOT execute `assert`s).
 void main() {
   // Type classification.
   assert(classifySms('Your OTP is 449281. Do not share.').type == SmsType.otp);

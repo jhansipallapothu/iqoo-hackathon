@@ -78,7 +78,8 @@ class IntentResolver {
   }
 }
 
-/// Run: `dart run lib/services/intent_resolver.dart`
+/// Run: `dart run --enable-asserts lib/services/intent_resolver.dart`
+/// (plain `dart run` does NOT execute `assert`s).
 void main() {
   IntentResolver.setInventory(const [
     AppEntry('WhatsApp', 'com.whatsapp'),

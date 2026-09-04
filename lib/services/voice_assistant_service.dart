@@ -117,15 +117,16 @@ class VoiceAssistantService {
       // Settings
       (RegExp(r'(open|go to|show).*(setting|config|menu)', caseSensitive: false), VoiceCommandType.openSettings),
 
-      // Open an installed app by (mis-heard) name — after Settings so
-      // "open settings" still wins.
-      (RegExp(r'\b(open|launch|start)\b\s+(.+)', caseSensitive: false), VoiceCommandType.openApp),
-
       // Help
       (RegExp(r'(help|what can you do|commands|how to use)', caseSensitive: false), VoiceCommandType.help),
-      
+
       // Emergency
       (RegExp(r'(emergency|help me|sos|danger|urgent)', caseSensitive: false), VoiceCommandType.emergency),
+
+      // Open an installed app by (mis-heard) name. LAST on purpose: this
+      // pattern is broad ("open/launch/start <anything>"), so every reserved
+      // command above — settings, help, emergency — must get first refusal.
+      (RegExp(r'\b(open|launch|start)\b\s+(.+)', caseSensitive: false), VoiceCommandType.openApp),
     ],
     'ta': [
       // Capture image - Tamil
@@ -162,15 +163,15 @@ class VoiceAssistantService {
       
       // Settings
       (RegExp(r'(திற|செல்|காண்).*(அமைப்பு|நிலைமை|மெனு)', caseSensitive: false), VoiceCommandType.openSettings),
-
-      // Open an installed app by name
-      (RegExp(r'\b(திற|தொடங்கு)\b\s+(.+)', caseSensitive: false), VoiceCommandType.openApp),
       
       // Help
       (RegExp(r'(உதவி|நீங்கள் என்ன செய்யலாம்|குறிப்புகள்|எப்படி பயன்படுத்த)', caseSensitive: false), VoiceCommandType.help),
       
       // Emergency
       (RegExp(r'(அவசர|உதவி|SOS|ஆபத்து|அவசரம்)', caseSensitive: false), VoiceCommandType.emergency),
+
+      // Open an installed app by name — LAST, broad pattern (see 'en' note).
+      (RegExp(r'\b(திற|தொடங்கு)\b\s+(.+)', caseSensitive: false), VoiceCommandType.openApp),
     ],
   };
 
