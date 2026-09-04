@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
 import '../services/on_device_llm_service.dart';
@@ -83,9 +84,13 @@ class AIService {
             ?.map((p) => p.text ?? '')
             .join('') ?? '';
         if (text.trim().isNotEmpty) return _formatResponse(text, browsingContext);
+      } on TimeoutException {
+        // A timeout means the network path is dead — the next model would just
+        // time out too. Stop and let the caller show a clean message.
+        debugPrint('AIService.generateResponse $model timed out; not trying more models');
+        break;
       } catch (e) {
-        // Never return the raw exception as the assistant's reply. Log it and
-        // try the next model; if all fail the caller shows a clean message.
+        // 503 / 404 etc — server was reachable, try the next model.
         debugPrint('AIService.generateResponse $model failed: $e');
       }
     }
@@ -136,9 +141,10 @@ class AIService {
         if (rest.isNotEmpty) onSentence?.call(rest);
         final full = buf.toString().trim();
         if (full.isNotEmpty) return full;
+      } on TimeoutException {
+        debugPrint('AIService.explain $model timed out; not trying more models');
+        break; // network down — next model won't help, fall to the template
       } catch (e) {
-        // 503 / timeout / bad model — log and let the loop try the next one
-        // (or stop, if this attempt already produced partial spoken text).
         debugPrint('AIService.explain $model failed: $e');
       }
     }

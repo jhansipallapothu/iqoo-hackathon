@@ -92,21 +92,42 @@ class _Risk {
   const _Risk(this.risk, [this.warning]);
 }
 
+// A link you're meant to tap: a real URL or a shortener. A bare vanity domain
+// ("www.pw.live", "sbi.co.in") in an otherwise-normal message is not this.
+final _actionableLinkRe = RegExp(
+  r'https?://|bit\.ly|tinyurl|t\.co/|cutt\.ly|rb\.gy|is\.gd|shorturl|tny\.',
+  caseSensitive: false,
+);
+
 _Risk _assessRisk(String body, SmsResult base) {
   final t = body.toLowerCase();
   final link = _hasLink(body);
+  final actionableLink = _actionableLinkRe.hasMatch(body);
   final phone = _hasPhone(body);
   final urgent = _urgency.any(t.contains);
 
-  // An OTP message that also pushes a link or a call — real ones never do.
-  if (base.type == SmsType.otp &&
-      (link || t.contains('click') || (t.contains('call') && phone))) {
-    return const _Risk(
-      SmsRisk.danger,
-      'This message has a one-time code and wants you to open a link or make '
-          'a call. Never share a code with anyone and do not open links. No '
-          'real bank or company asks for your code.',
-    );
+  // OTP + a tappable link or a "call this number" — real OTP texts never do
+  // this. A brand's own bare domain ("...-PWALLA @www.pw.live") is not enough.
+  if (base.type == SmsType.otp) {
+    if (actionableLink ||
+        t.contains('click') ||
+        (t.contains('call') && phone) ||
+        (link && urgent)) {
+      return const _Risk(
+        SmsRisk.danger,
+        'This message has a one-time code and wants you to open a link or make '
+            'a call. Never share a code with anyone and do not open links. No '
+            'real bank or company asks for your code.',
+      );
+    }
+    if (link) {
+      return const _Risk(
+        SmsRisk.caution,
+        'This message has a one-time code and mentions a website. Never share '
+            'the code with anyone. If you need the site, type the address '
+            'yourself — do not tap a link.',
+      );
+    }
   }
   // Urgency plus a way to act on it — the classic scam shape.
   if (urgent && (link || phone)) {
@@ -183,6 +204,17 @@ void main() {
   // Fraud risk — caution.
   assert(classifySms('Sale ends today, see items at www.myshop.in').risk ==
       SmsRisk.caution);
+  // A legit brand OTP that carries only its own vanity domain — caution, not
+  // danger (no scheme, no shortener, no "click"/"call", no urgency).
+  assert(classifySms(
+              '843508 is your OTP for PhysicsWallah, valid 10 minutes. '
+              '-PWALLA @www.pw.live #843508')
+          .risk ==
+      SmsRisk.caution);
+  // OTP + a real tappable link is still danger.
+  assert(classifySms('OTP 4321. Enter it at http://sbi-verify.xyz to continue')
+          .risk ==
+      SmsRisk.danger);
 
   // Fraud risk — none (legit messages must not trip the rules).
   assert(classifySms('Your OTP is 449281. Do not share.').risk == SmsRisk.none);

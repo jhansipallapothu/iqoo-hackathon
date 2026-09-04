@@ -23,12 +23,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final OfflineCacheService _cacheService = OfflineCacheService();
   final VoiceAssistantService _voiceAssistant = VoiceAssistantService();
 
-  bool _onDeviceLLM = false;
   bool _offlineMode = false;
   bool _gpsEnabled = false;
   bool _ttsEnabled = false;
   bool _vibrationFeedback = false;
-  bool _webBrowsing = false;
   bool _voiceAssistantEnabled = false;
   bool _shakeWakeWord = false;
   bool _highContrast = false;
@@ -56,12 +54,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         (e) => debugPrint('Voice assistant init failed: $e'));
 
     setState(() {
-      _onDeviceLLM = _configService.appConfig.features.onDeviceLLM;
       _offlineMode = _configService.appConfig.features.offlineMode;
       _gpsEnabled = _configService.appConfig.features.gpsEnabled;
       _ttsEnabled = _configService.appConfig.features.ttsEnabled;
       _vibrationFeedback = _configService.appConfig.features.vibrationFeedback;
-      _webBrowsing = _configService.appConfig.features.webBrowsing;
       _voiceAssistantEnabled = _configService.appConfig.features.voiceAssistant;
       _shakeWakeWord = _configService.appConfig.features.shakeWakeWord;
       _highContrast = _configService.appConfig.features.highContrast;
@@ -84,7 +80,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       switch (feature) {
         case 'on_device_llm':
-          _onDeviceLLM = value;
           _aiService.setUseOnDevice(value);
           break;
         case 'offline_mode':
@@ -100,7 +95,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _vibrationFeedback = value;
           break;
         case 'web_browsing':
-          _webBrowsing = value;
           break;
         case 'voice_assistant':
           _voiceAssistantEnabled = value;
@@ -239,26 +233,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               padding: const EdgeInsets.all(16),
               children: [
                 _buildSection(isTamil ? 'AI மாதிரி' : 'AI Model', [
-                  _buildSwitchTile(
-                    title: 'On-Device LLM (Gemma 2B)',
-                    subtitle: 'Runs locally on Snapdragon NPU',
-                    value: _onDeviceLLM,
-                    onChanged: (v) => _toggleFeature('on_device_llm', v),
-                    leading: Icon(_onDeviceLLM ? Icons.phone_android : Icons.cloud, color: _onDeviceLLM ? Colors.green : Colors.orange),
-                  ),
+                  // On-Device LLM and Web Browsing toggles removed: neither is
+                  // wired (on_device_llm_service is a stub; web browsing has no
+                  // working destination). Re-add when they actually do something.
                   _buildSwitchTile(
                     title: 'Offline Mode',
                     subtitle: 'Use cached responses when offline',
                     value: _offlineMode,
                     onChanged: (v) => _toggleFeature('offline_mode', v),
                     leading: Icon(_offlineMode ? Icons.wifi_off : Icons.wifi, color: _offlineMode ? Colors.green : Colors.grey),
-                  ),
-                  _buildSwitchTile(
-                    title: 'Web Browsing',
-                    subtitle: 'Search real-time info from the web',
-                    value: _webBrowsing,
-                    onChanged: (v) => _toggleFeature('web_browsing', v),
-                    leading: Icon(_webBrowsing ? Icons.public : Icons.public_off, color: _webBrowsing ? Colors.blue : Colors.grey),
                   ),
                   _buildSwitchTile(
                     title: 'Cache Responses',

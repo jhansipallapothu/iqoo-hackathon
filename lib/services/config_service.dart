@@ -24,6 +24,12 @@ class ConfigService {
     _initialized = true;
   }
 
+  static const _featureKeys = [
+    'on_device_llm', 'offline_mode', 'tamil_support', 'gps_enabled',
+    'tts_enabled', 'vibration_feedback', 'web_browsing', 'voice_assistant',
+    'shake_wake_word', 'high_contrast', 'large_text', 'accessibility_mode',
+  ];
+
   Future<void> _loadConfigs() async {
     try {
       final appConfigJson = await rootBundle.loadString('assets/config/app_config.json');
@@ -33,6 +39,14 @@ class ConfigService {
       final promptsJson = await rootBundle.loadString('assets/config/prompts.json');
       final promptsMap = json.decode(promptsJson);
       _promptsConfig = PromptsConfig.fromJson(promptsMap);
+
+      // Re-apply any toggles the user changed in Settings — without this the
+      // asset defaults win on every restart and the switches don't stick.
+      final prefs = await SharedPreferences.getInstance();
+      for (final f in _featureKeys) {
+        final saved = prefs.getBool('feature_$f');
+        if (saved != null) await updateFeature(f, saved);
+      }
     } catch (e) {
       throw Exception('Failed to load configs: $e');
     }

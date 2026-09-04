@@ -640,6 +640,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return AppBar(
       automaticallyImplyLeading: false,
       toolbarHeight: 72,
+      titleSpacing: 8, // don't let the actions squeeze the mode name to "Rea…"
       // The most prominent text = what mode you're in and how to use it, big and
       // bold. The address lives in the spoken location sentence, not here.
       title: Semantics(
@@ -652,15 +653,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           children: [
             Text(
               _getModeName(_selectedIndex),
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.fade,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 24,
+                fontSize: 21,
                 fontWeight: FontWeight.w800,
               ),
             ),
             Text(
               _modeInstruction(isTamil),
-              style: const TextStyle(color: Colors.white70, fontSize: 13),
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -669,7 +673,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       ),
       backgroundColor: Colors.black,
       actions: [
-        _buildVoiceAssistantButton(isTamil),
         _buildGPSIndicator(),
         _buildNetworkIndicator(isOnline),
         _buildAccessibilityButton(isTamil),
@@ -690,23 +693,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           tooltip: _localization.tr('settings'),
         ),
       ],
-    );
-  }
-
-  Widget _buildVoiceAssistantButton(bool isTamil) {
-    return Semantics(
-      button: true,
-      label: _voiceAssistantActive ? (isTamil ? 'தொல்காப்பியний நிறுத்து' : 'Stop Voice Assistant') : (isTamil ? 'தொல்காப்பியன் துவக்கு' : 'Start Voice Assistant'),
-      hint: isTamil ? 'அனைத்து காட்சிகளுக்கும் குரல் கட்டளைகளை இயக்கவும்' : 'Enable voice commands for all screens',
-      child: IconButton(
-        icon: Icon(
-          _voiceAssistantActive ? Icons.mic : Icons.mic_none,
-          color: _voiceAssistantActive ? Colors.greenAccent : Colors.blue,
-          size: 28,
-        ),
-        onPressed: _toggleVoiceAssistant,
-        tooltip: _voiceAssistantActive ? 'Stop Voice Assistant' : 'Start Voice Assistant',
-      ),
     );
   }
 
