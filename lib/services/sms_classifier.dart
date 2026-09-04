@@ -2,14 +2,36 @@
 
 enum SmsType { otp, spam, transaction, normal }
 
+/// How dangerous the message looks. Rules are keyword/regex only, so they run
+/// offline and instantly — and they catch the common scams aimed at blind and
+/// elderly users, not every clever one. Warnings are a *caution to the user*,
+/// never a verdict.
+enum SmsRisk { none, caution, danger }
+
 class SmsResult {
   final SmsType type;
   final String? code;
-  const SmsResult(this.type, {this.code});
+  final SmsRisk risk;
+
+  /// Spoken caution, or null when [risk] is none.
+  final String? warning;
+
+  const SmsResult(
+    this.type, {
+    this.code,
+    this.risk = SmsRisk.none,
+    this.warning,
+  });
 }
 
-/// Offline, instant classification of an SMS body.
+/// Offline, instant classification of an SMS body — type + fraud risk.
 SmsResult classifySms(String body) {
+  final base = _classifyType(body);
+  final risk = _assessRisk(body, base);
+  return SmsResult(base.type, code: base.code, risk: risk.risk, warning: risk.warning);
+}
+
+SmsResult _classifyType(String body) {
   final t = body.toLowerCase();
 
   final otpWord = RegExp(
@@ -35,8 +57,103 @@ SmsResult classifySms(String body) {
   return const SmsResult(SmsType.normal);
 }
 
+// A URL: scheme, bare www, a known shortener, or word.tld for a scammy TLD set.
+final _linkRe = RegExp(
+  r'https?://|www\.\w|bit\.ly|tinyurl|t\.co/|cutt\.ly|rb\.gy|is\.gd|shorturl|'
+  r'\b[a-z0-9][a-z0-9-]*\.(?:com|net|org|in|io|xyz|info|link|click|app|shop|'
+  r'online|site|live|vip|top|buzz|biz|ru|tk|ml|ga|cf|gq)\b',
+  caseSensitive: false,
+);
+// 10+ contiguous digits (with spaces/dashes) — a phone number, not a 4–8 digit code.
+final _phoneRe = RegExp(r'(?<!\d)(?:\+?\d[\d\s-]{8,}\d)(?!\d)');
+
+bool _hasLink(String body) => _linkRe.hasMatch(body);
+bool _hasPhone(String body) => _phoneRe.hasMatch(body);
+
+const _urgency = [
+  'blocked', 'suspend', 'deactivat', 'expire', 'expiry', 'kyc',
+  'within 24', 'within 12', 'immediately', 'urgent', 'last warning',
+  'penalty', 'legal action', 'verify now', 're-activate', 'reactivate',
+  'unlock your', 'update your',
+];
+const _bait = [
+  'refund', 'cashback', 'reward point', 'redeem', 'lucky draw', 'gift card',
+  'you have won', 'kbc',
+];
+const _authority = [
+  'bank', 'sbi', 'hdfc', 'icici', 'axis', 'paytm', 'phonepe', 'income tax',
+  'aadhaar', 'aadhar', 'govt', 'government', 'electricity board', 'customs',
+  'courier', 'parcel', 'india post', 'fedex', 'dhl',
+];
+
+class _Risk {
+  final SmsRisk risk;
+  final String? warning;
+  const _Risk(this.risk, [this.warning]);
+}
+
+_Risk _assessRisk(String body, SmsResult base) {
+  final t = body.toLowerCase();
+  final link = _hasLink(body);
+  final phone = _hasPhone(body);
+  final urgent = _urgency.any(t.contains);
+
+  // An OTP message that also pushes a link or a call — real ones never do.
+  if (base.type == SmsType.otp &&
+      (link || t.contains('click') || (t.contains('call') && phone))) {
+    return const _Risk(
+      SmsRisk.danger,
+      'This message has a one-time code and wants you to open a link or make '
+          'a call. Never share a code with anyone and do not open links. No '
+          'real bank or company asks for your code.',
+    );
+  }
+  // Urgency plus a way to act on it — the classic scam shape.
+  if (urgent && (link || phone)) {
+    return const _Risk(
+      SmsRisk.danger,
+      'This message is trying to rush you. Real banks and government offices '
+          'do not work this way. Do not open any link or call any number in '
+          'it. Ask someone you trust.',
+    );
+  }
+  // Money or a prize behind a link.
+  if (_bait.any(t.contains) && link) {
+    return const _Risk(
+      SmsRisk.danger,
+      'This offers you money or a prize and wants you to open a link. That is '
+          'almost always a scam. Do not open it.',
+    );
+  }
+  // Claims to be a bank or an official body, and carries a link.
+  if (_authority.any(t.contains) && link) {
+    return const _Risk(
+      SmsRisk.danger,
+      'This claims to be from a bank or an official body and contains a link. '
+          'They do not send links like this. Do not open it.',
+    );
+  }
+  // A bare link you were not expecting.
+  if (link) {
+    return const _Risk(
+      SmsRisk.caution,
+      'This message contains a web link. Do not open links you were not '
+          'expecting.',
+    );
+  }
+  // Spam that wants you to phone a number.
+  if (base.type == SmsType.spam && phone) {
+    return const _Risk(
+      SmsRisk.caution,
+      'This looks like spam and wants you to call a number. Do not call it.',
+    );
+  }
+  return const _Risk(SmsRisk.none);
+}
+
 /// Run: `dart run lib/services/sms_classifier.dart`
 void main() {
+  // Type classification.
   assert(classifySms('Your OTP is 449281. Do not share.').type == SmsType.otp);
   assert(classifySms('Use code 5567 to verify').code == '5567');
   assert(classifySms('Congratulations! You won a lottery prize').type ==
@@ -45,5 +162,38 @@ void main() {
       SmsType.transaction);
   assert(classifySms('Are we meeting at 5?').type == SmsType.normal);
   assert(classifySms('Call me on 91234').type == SmsType.normal);
+
+  // Fraud risk — danger.
+  assert(classifySms('Your OTP is 4321. Enter it at http://sbi-verify.xyz')
+          .risk ==
+      SmsRisk.danger);
+  assert(classifySms(
+              'URGENT: your account is blocked. Verify at http://bit.ly/x now')
+          .risk ==
+      SmsRisk.danger);
+  assert(classifySms('You won a refund of Rs 5000, claim at www.refund-portal.in')
+          .risk ==
+      SmsRisk.danger);
+  assert(classifySms(
+              'KYC update pending. Visit https://kyc-hdfc.top or call 1800-000-1111')
+          .risk ==
+      SmsRisk.danger);
+
+  // Fraud risk — caution.
+  assert(classifySms('Sale ends today, see items at www.myshop.in').risk ==
+      SmsRisk.caution);
+
+  // Fraud risk — none (legit messages must not trip the rules).
+  assert(classifySms('Your OTP is 449281. Do not share.').risk == SmsRisk.none);
+  assert(classifySms('Rs 500 debited from a/c XX1234').risk == SmsRisk.none);
+  assert(classifySms('Are we meeting at 5?').risk == SmsRisk.none);
+  assert(classifySms('Reminder: electricity bill of Rs 840 due on 12 Sep')
+          .risk ==
+      SmsRisk.none);
+
+  // A danger message always carries a spoken warning.
+  final d = classifySms('URGENT account blocked, verify http://bit.ly/x');
+  assert(d.risk == SmsRisk.danger && (d.warning?.isNotEmpty ?? false));
+
   print('sms_classifier: all checks passed');
 }

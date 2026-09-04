@@ -22,6 +22,26 @@ context, `DEMO_FEATURES.md` for the demo script.
 - [ ] Confirm speech rate 0.4 is comfortable; adjust `SpeechConfig.rate` if not.
 - [ ] SMS triage (send the phone an OTP / spam / txn SMS, check it's read).
 
+## P0 — Message assistant + fraud protection (building now)
+
+- [x] `classifySms` → add `SmsRisk` (none/caution/danger) + `fraudWarning`.
+      Offline rules: link + bank/urgency words, OTP that also has a link or
+      "share"/"call", urgency + link/number, refund/prize + link. Self-check.
+- [x] `InboxScreen` — reads the inbox via `another_telephony` `getInboxSms`,
+      classifies each, speaks sequentially (`awaitSpeakCompletion(true)`).
+      Per message: ~2.5 s window, double-tap = mark important (spoken
+      "Marked important" / else "Left unmarked"). Flags persist in
+      `OfflineCacheService` (`msg_imp_<key>`). After the pass: double-tap =
+      replay only the important ones. Single tap / Vol key = repeat last line.
+- [x] Danger message: speak the warning first; do NOT read the OTP digits or
+      the URL aloud (say "a code" / "a web link").
+- [x] Entry point: labelled AppBar action on homepage ("Read my messages").
+      Revisit if a gesture frees up.
+- [ ] **Device-verify on the Redmi**: seed inbox with an OTP, a txn alert, a
+      fake-bank scam SMS with a link. Confirm order, the double-tap window is
+      long enough, flags survive re-open, danger message is redacted.
+- [ ] Wire "read my messages" into the voice-assistant intent list (iQOO 15).
+
 ## P0 — iQOO 15 only (voice input is dead on the Redmi)
 
 - [ ] `speech_to_text` initialises → double-tap-to-ask works (speak a question,

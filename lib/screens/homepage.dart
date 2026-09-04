@@ -20,6 +20,7 @@ import '../services/emergency_service.dart';
 import '../widgets/debug_overlay.dart';
 import 'chatscreen.dart';
 import 'read_explain_screen.dart';
+import 'inbox_screen.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -696,6 +697,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _buildGPSIndicator(),
         _buildNetworkIndicator(isOnline),
         _buildAccessibilityButton(isTamil),
+        IconButton(
+          icon: const Icon(Icons.mail_outline, color: Colors.blue),
+          tooltip: 'Read my messages',
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const InboxScreen()),
+          ),
+        ),
         IconButton(
           icon: const Icon(Icons.settings, color: Colors.blue),
           onPressed: () => Navigator.push(
