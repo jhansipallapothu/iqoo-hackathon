@@ -11,6 +11,7 @@ import '../services/localization_service.dart';
 import '../services/config_service.dart';
 import '../services/browsing_service.dart';
 import '../services/speech_config.dart';
+import '../services/intent_resolver.dart';
 
 enum VoiceCommandType {
   captureImage,
@@ -26,6 +27,7 @@ enum VoiceCommandType {
   switchMode,
   toggleFeature,
   openSettings,
+  openApp,
   help,
   emergency,
   unknown,
@@ -114,7 +116,11 @@ class VoiceAssistantService {
       
       // Settings
       (RegExp(r'(open|go to|show).*(setting|config|menu)', caseSensitive: false), VoiceCommandType.openSettings),
-      
+
+      // Open an installed app by (mis-heard) name — after Settings so
+      // "open settings" still wins.
+      (RegExp(r'\b(open|launch|start)\b\s+(.+)', caseSensitive: false), VoiceCommandType.openApp),
+
       // Help
       (RegExp(r'(help|what can you do|commands|how to use)', caseSensitive: false), VoiceCommandType.help),
       
@@ -156,6 +162,9 @@ class VoiceAssistantService {
       
       // Settings
       (RegExp(r'(திற|செல்|காண்).*(அமைப்பு|நிலைமை|மெனு)', caseSensitive: false), VoiceCommandType.openSettings),
+
+      // Open an installed app by name
+      (RegExp(r'\b(திற|தொடங்கு)\b\s+(.+)', caseSensitive: false), VoiceCommandType.openApp),
       
       // Help
       (RegExp(r'(உதவி|நீங்கள் என்ன செய்யலாம்|குறிப்புகள்|எப்படி பயன்படுத்த)', caseSensitive: false), VoiceCommandType.help),
@@ -386,6 +395,10 @@ class VoiceAssistantService {
       case VoiceCommandType.searchWeb:
         params['query'] = text.replaceAll(RegExp(r'(search|look up|find|google|தேடு|பாரு|காண்|கூகிள்)\s*', caseSensitive: false), '');
         break;
+      case VoiceCommandType.openApp:
+        params['app'] = text.replaceAll(
+            RegExp(r'^\s*(open|launch|start|திற|தொடங்கு)\s+', caseSensitive: false), '');
+        break;
       case VoiceCommandType.getDirections:
         params['destination'] = text.replaceAll(RegExp(r'(navigate|direction|route|go to|நாவிகேட்|திசை|செல்)\s*', caseSensitive: false), '');
         break;
@@ -434,6 +447,9 @@ class VoiceAssistantService {
         case VoiceCommandType.openSettings:
           onStatusUpdate?.call('open_settings');
           _announce('Opening settings');
+          break;
+        case VoiceCommandType.openApp:
+          await _openApp(command.parameters['app'] as String?);
           break;
         case VoiceCommandType.help:
           _announceHelp();
@@ -550,6 +566,7 @@ class VoiceAssistantService {
         - "Analyze document" or "Where am I"
         - "Search [topic]" or "Navigate to [place]"
         - "Read last response" or "Switch mode"
+        - "Open WhatsApp" or "Open" any installed app
         - "Enable GPS" or "Turn on offline mode"
         - "Emergency" for SOS''';
     
@@ -560,6 +577,39 @@ class VoiceAssistantService {
     _announce('Emergency mode activated. Contacting emergency services...', interrupt: true);
     HapticFeedback.heavyImpact();
     onStatusUpdate?.call('emergency');
+  }
+
+  static const _phone = MethodChannel('aiforall/phone');
+
+  /// Resolve a spoken (often mis-heard) app name against the phone's real
+  /// launchable-app list and open it. The inventory is fetched once, lazily.
+  Future<void> _openApp(String? phrase) async {
+    final p = (phrase ?? '').trim();
+    if (p.isEmpty) {
+      _announce('Which app should I open?');
+      return;
+    }
+    try {
+      if (IntentResolver.isEmpty) {
+        final raw =
+            await _phone.invokeMethod<List<dynamic>>('listLaunchableApps');
+        IntentResolver.setInventory([
+          for (final m in raw ?? const [])
+            AppEntry((m as Map)['label'] as String, m['package'] as String),
+        ]);
+      }
+      final hit = IntentResolver.resolve(p);
+      if (hit == null) {
+        _announce("I couldn't find $p. Try the exact app name.");
+        return;
+      }
+      final ok = await _phone
+              .invokeMethod<bool>('launchApp', {'packageName': hit.package}) ??
+          false;
+      _announce(ok ? 'Opening ${hit.label}.' : "I couldn't open ${hit.label}.");
+    } on PlatformException catch (e) {
+      _handleError('Open app failed: ${e.message}');
+    }
   }
 
   Future<void> _handleUnknownCommand(String text) async {

@@ -87,6 +87,20 @@ class MainActivity : FlutterActivity() {
                             result.success(openUpi(uri))
                         }
                     }
+                    // "Open <app>" by voice: the phone's own launchable-app list
+                    // (label + package) so Dart can match a spoken phrase to a
+                    // real installed app — no hand-maintained package map.
+                    "listLaunchableApps" -> result.success(listLaunchableApps())
+                    "launchApp" -> {
+                        val pkg = call.argument<String>("packageName")
+                        val intent = pkg?.let { packageManager.getLaunchIntentForPackage(it) }
+                        if (intent != null) {
+                            startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                            result.success(true)
+                        } else {
+                            result.success(false)
+                        }
+                    }
                     "hasCallPermission" -> result.success(hasCallPermission())
                     "requestCallPermission" -> {
                         ActivityCompat.requestPermissions(
@@ -115,6 +129,17 @@ class MainActivity : FlutterActivity() {
             true
         } catch (e: Exception) {
             false
+        }
+    }
+
+    /** Every activity that shows in the launcher: user-visible label + package. */
+    private fun listLaunchableApps(): List<Map<String, String>> {
+        val main = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        return packageManager.queryIntentActivities(main, 0).map {
+            mapOf(
+                "label" to it.loadLabel(packageManager).toString(),
+                "package" to it.activityInfo.packageName,
+            )
         }
     }
 

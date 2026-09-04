@@ -86,5 +86,10 @@
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="upi"/>
         </intent>
+        <!-- "open <app>" by voice: see every launchable app's label + package -->
+        <intent>
+            <action android:name="android.intent.action.MAIN"/>
+            <category android:name="android.intent.category.LAUNCHER"/>
+        </intent>
     </queries>
 </manifest>
