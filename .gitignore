@@ -36,3 +36,9 @@ lib/screens/constapi.dart
 /*.png
 !assets/**
 ui.xml
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.log
+*.swp

@@ -159,3 +159,10 @@ dart run lib/services/sms_classifier.dart
 
 See `DEMO_FEATURES.md` for the hackathon plan, the model decision, the Sept 4
 spike, and the 90-second demo script.
+
+---
+
+## Repo
+
+Built by [@lekkalaharsha](https://github.com/lekkalaharsha) for the iQOO
+Hackathon 2026. Issues and PRs welcome after the event.
