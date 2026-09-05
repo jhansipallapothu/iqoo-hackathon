@@ -1,4 +1,4 @@
-# AI For ALL — iQOO Hackathon 2026 (Chennai) Plan
+# Logic Legends — iQOO Hackathon 2026 (Chennai) Plan
 
 **User:** blind and low-vision people (also serves low-literacy and elderly users — same flow, no extra build).
 

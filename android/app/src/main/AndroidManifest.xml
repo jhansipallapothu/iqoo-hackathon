@@ -16,7 +16,7 @@
 
 
     <application
-        android:label="smartbuildlabs"
+        android:label="Logic Legends"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:enableOnBackInvokedCallback="true"

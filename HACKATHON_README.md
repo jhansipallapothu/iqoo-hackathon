@@ -1,4 +1,4 @@
-# AI For ALL - iQOO Hackathon 2026 Chennai
+# Logic Legends - iQOO Hackathon 2026 Chennai
 
 ## 🎯 Project Overview
 **Phone-first AI Assistant** with on-device LLM (Gemma 2B), GPS context, web browsing, **voice activation**, and full accessibility for blind/visually impaired users. Built for iQOO 15 Snapdragon NPU.

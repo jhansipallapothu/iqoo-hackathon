@@ -643,7 +643,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           highContrast: _highContrast,
         ),
         child: Semantics(
-          label: isTamil ? 'AI அனைவர்க்கும் मुख் ஸ்க்ரீன்' : 'AI For ALL Main Screen',
+          label: isTamil ? 'Logic Legends मुख் ஸ்க்ரீன்' : 'Logic Legends Main Screen',
           // No bottom bar, no FAB: the whole preview is the shutter (tap), and a
           // horizontal swipe toggles the two modes. Nothing to find by sight.
           child: Scaffold(

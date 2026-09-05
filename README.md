@@ -1,4 +1,4 @@
-# AI For ALL
+# Logic Legends
 
 An on-device visual assistant for blind and low-vision users. Point the phone at
 a document — a medicine strip, a bill, an official notice — and it doesn't just
