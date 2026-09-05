@@ -351,7 +351,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _buildSection(isTamil ? 'உதவி & கட்டளைகள்' : 'Help & Commands', [
                   ListTile(
                     leading: const Icon(Icons.school_outlined),
-                    title: const Text('How to use AI For All'),
+                    title: const Text('How to use Logic Legends'),
                     subtitle: const Text('Replay the spoken tutorial'),
                     onTap: () async {
                       await _cacheService.setBool('onboarding_seen', false);
