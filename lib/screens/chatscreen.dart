@@ -42,7 +42,7 @@ class _ChatscreenState extends State<Chatscreen> {
   ChatUser currentUser = ChatUser(id: "0", firstName: "User");
   ChatUser geminiUser = ChatUser(
     id: "1",
-    firstName: "AI for all",
+    firstName: "Logic Legends",
     profileImage: "assets/images/import.jpg",
   );
 

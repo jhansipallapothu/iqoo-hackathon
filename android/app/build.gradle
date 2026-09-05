@@ -19,7 +19,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.smartbuildlabs.saarthi"
+        applicationId = "com.logiclegends.saarthi"
         minSdkVersion = flutter.minSdkVersion
         targetSdk = 34
         versionCode = flutter.versionCode

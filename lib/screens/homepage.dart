@@ -435,7 +435,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           highContrast: _highContrast,
         ),
         child: Semantics(
-          label: isTamil ? 'AI அனைவர்க்கும் मुख் ஸ்க்ரீன்' : 'AI For ALL Main Screen',
+          label: isTamil ? 'Logic Legends मुख் ஸ்க்ரீன்' : 'Logic Legends Main Screen',
           child: Scaffold(
             appBar: _buildAppBar(isTamil, isOnline),
             body: _buildBody(isTamil, isOnline),

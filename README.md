@@ -1,4 +1,4 @@
-# smartbuildlabs
+# Logic Legends
 
 AI BASED SMART APPLICATION FOR BLIEND PEOPLE 
 startup project 

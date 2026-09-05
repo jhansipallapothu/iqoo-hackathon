@@ -1,6 +1,6 @@
-import 'package:smartbuildlabs/screens/homepage.dart';
+import 'package:logic_legends/screens/homepage.dart';
 import 'package:flutter/material.dart';
-import 'package:smartbuildlabs/screens/constapi.dart';
+import 'package:logic_legends/screens/constapi.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:camera/camera.dart';
 
@@ -34,7 +34,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'AI For ALL',
+      title: 'Logic Legends',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
