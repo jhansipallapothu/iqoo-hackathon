@@ -31,7 +31,7 @@ void main() {
     final ai = AIService();
     if (ai.cloudConfigured) return;
     expect(await ai.explain('Read this notice'), isNull);
-    expect(await ai.generateResponse(prompt: 'Describe scene', isTamil: false), isNull);
+    expect(await ai.generateResponse(prompt: 'Describe scene'), isNull);
   });
 }
 

@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import '../services/on_device_llm_service.dart';
 import '../services/browsing_service.dart';
 import '../services/config_service.dart';
-import '../services/localization_service.dart';
 import '../services/gemini_api_client.dart';
 
 class AIService {
@@ -14,7 +13,6 @@ class AIService {
   final OnDeviceLLMService _onDeviceLLM = OnDeviceLLMService();
   final BrowsingService _browsing = BrowsingService();
   final ConfigService _configService = ConfigService();
-  final LocalizationService _localization = LocalizationService();
 
   late final GeminiApiClient _gemini = GeminiApiClient(apiKey: GEMINI_API_KEY);
   bool get cloudConfigured =>
@@ -38,7 +36,6 @@ class AIService {
     if (_initialized) return;
 
     await _configService.initialize();
-    await _localization.initialize();
 
     if (_configService.appConfig.features.onDeviceLLM) {
       _useOnDevice = await _onDeviceLLM.initialize();
@@ -53,7 +50,6 @@ class AIService {
   Future<String?> generateResponse({
     required String prompt,
     List<Uint8List>? images,
-    required bool isTamil,
     bool enableBrowsing = true,
   }) async {
     lastFailureMessage = null;
@@ -67,9 +63,9 @@ class AIService {
     String? browsingContext;
 
     if (enableBrowsing && _shouldBrowse(prompt)) {
-      browsingContext = await _fetchBrowsingContext(prompt, isTamil);
+      browsingContext = await _fetchBrowsingContext(prompt);
       if (browsingContext != null && browsingContext.isNotEmpty) {
-        finalPrompt = _injectBrowsingContext(prompt, browsingContext, isTamil);
+        finalPrompt = _injectBrowsingContext(prompt, browsingContext);
       }
     }
 
@@ -123,8 +119,22 @@ class AIService {
     void Function(String sentence)? onSentence,
     Duration timeout = const Duration(seconds: 6),
   }) async {
-    // ponytail: on-device path lands here once flutter_gemma is wired; for now
-    // it is the same cloud call, just text-only and sentence-streamed.
+    if (_useOnDevice && _onDeviceLLM.initialized) {
+      try {
+        final onDeviceFull =
+            await _onDeviceLLM.generateResponse(promptText).timeout(timeout);
+        if (onDeviceFull != null && onDeviceFull.trim().isNotEmpty) {
+          for (final sentence in _spokenSentences(onDeviceFull)) {
+            onSentence?.call(sentence);
+          }
+          return onDeviceFull;
+        }
+      } catch (e) {
+        debugPrint('AIService.explain on-device failed: $e');
+      }
+      // Falls through to cloud below — on-device is a fallible enhancement.
+    }
+
     if (!cloudConfigured) return null;
     for (final model in _models) {
       try {
@@ -218,42 +228,22 @@ class AIService {
       'latest version',
       'release',
       'launch',
-      'அद्यதன்',
-      'தற்போதைய',
-      'இன்று',
-      'விலை',
-      'வீட்டு',
-      'வ Gefangenen',
-      'செய்தி',
-      'பதிவாதம்',
-      'மு�தலியavel',
-      'அருகே',
-      'நேரம்',
-      'தொடர்பு',
-      'கலாரி',
-      'விமர்சனம்',
-      'எப்படி',
-      'என்ன',
-      'யார்',
     ];
 
     return browseKeywords.any((kw) => lowerPrompt.contains(kw));
   }
 
-  Future<String?> _fetchBrowsingContext(String prompt, bool isTamil) async {
+  Future<String?> _fetchBrowsingContext(String prompt) async {
     try {
       final lowerPrompt = prompt.toLowerCase();
 
       // Determine search type based on prompt
       if (lowerPrompt.contains('food') ||
           lowerPrompt.contains('nutrition') ||
-          lowerPrompt.contains('calorie') ||
-          lowerPrompt.contains('உணவு') ||
-          lowerPrompt.contains('கலாரி') ||
-          lowerPrompt.contains('நீர்ப்பு')) {
+          lowerPrompt.contains('calorie')) {
         // Extract food name
-        final foodName = _extractEntity(prompt,
-            ['food', 'nutrition', 'calorie', 'ingredients', 'உணவு', 'கலாரி']);
+        final foodName =
+            _extractEntity(prompt, ['food', 'nutrition', 'calorie', 'ingredients']);
         if (foodName != null) {
           return await _browsing.searchFoodInfo(foodName);
         }
@@ -261,11 +251,9 @@ class AIService {
 
       if (lowerPrompt.contains('document') ||
           lowerPrompt.contains('template') ||
-          lowerPrompt.contains('format') ||
-          lowerPrompt.contains('ஆவண') ||
-          lowerPrompt.contains('வடிவமைப்பு')) {
-        final docType = _extractEntity(
-            prompt, ['document', 'template', 'format', 'ஆவண', 'வடிவமைப்பு']);
+          lowerPrompt.contains('format')) {
+        final docType =
+            _extractEntity(prompt, ['document', 'template', 'format']);
         if (docType != null) {
           return await _browsing.searchDocumentInfo(docType);
         }
@@ -273,18 +261,14 @@ class AIService {
 
       if (lowerPrompt.contains('near me') ||
           lowerPrompt.contains('nearby') ||
-          lowerPrompt.contains('hours') ||
-          lowerPrompt.contains('அருகே') ||
-          lowerPrompt.contains('நேரம்')) {
+          lowerPrompt.contains('hours')) {
         // Use GPS location if available
         return await _browsing.searchLocalInfo('current location', prompt);
       }
 
       if (lowerPrompt.contains('news') ||
           lowerPrompt.contains('latest') ||
-          lowerPrompt.contains('update') ||
-          lowerPrompt.contains('செய்தி') ||
-          lowerPrompt.contains('புதுப்பித்தல்')) {
+          lowerPrompt.contains('update')) {
         return await _browsing.searchCurrentEvents(prompt);
       }
 
@@ -311,10 +295,8 @@ class AIService {
   }
 
   String _injectBrowsingContext(
-      String originalPrompt, String browsingContext, bool isTamil) {
-    final contextLabel = isTamil
-        ? 'வலை தேடல் சூழல் (Real-time info):'
-        : 'Web Search Context (Real-time info):';
+      String originalPrompt, String browsingContext) {
+    const contextLabel = 'Web Search Context (Real-time info):';
 
     return '''
 $originalPrompt
@@ -332,9 +314,7 @@ Instructions: Use the above real-time information to provide an accurate, up-to-
     }
 
     // Add source attribution
-    final sourceNote = _localization.isTamil
-        ? '\n\n📱 தகவல் மூலம்: வலை தேடல் (Real-time web search)'
-        : '\n\n📱 Source: Web search (Real-time)';
+    const sourceNote = '\n\n📱 Source: Web search (Real-time)';
 
     return response + sourceNote;
   }

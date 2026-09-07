@@ -37,15 +37,17 @@ failure. Instead, one capture drives two paths:
 OCR is the intended fast path, but it can fail or misread text. The
 speech and failure behavior still require physical-device validation.
 
-The language model behind the explanation is a **seam** (`AiService.explain`):
+The language model behind the explanation tries on-device first, falling back
+to cloud on any failure or timeout (`AiService.explain`):
 
-| Phase | Runs on | Why |
+| Path | Runs on | Notes |
 | --- | --- | --- |
-| Submission video | cloud Gemini (`gemini-3.6-flash`) | proves the flow and UX |
-| Hackathon build | on-device via `flutter_gemma` (Gemma 2B) | the graded version, airplane mode on stage |
+| On-device (primary) | `flutter_gemma` (LiteRT-LM engine) running **Qwen3 0.6B** | Public model, no Hugging Face token needed. Not yet run on a physical device from this repo — implemented and builds clean, device verification pending. |
+| Cloud fallback | Gemini (`gemini-3.6-flash` etc.) | Used if on-device isn't initialized, generation fails, or the 6s timeout hits. |
 
 Everything else — OCR, document classification, fallback templates, cache,
-text-to-speech — already runs on-device.
+text-to-speech — already runs on-device. Note: `minSdkVersion` is 30
+(Android 11+), required by `flutter_gemma`'s LiteRT inference engine.
 
 ### Blind-first interaction
 
@@ -108,17 +110,18 @@ lib/
 │   ├── ocr_service.dart              ML Kit on-device text recognition
 │   ├── read_explain_logic.dart       PURE: classify, fallback templates, prompt,
 │   │                                 sentence-split — has a `dart run` self-check
-│   ├── ai_service.dart               cloud Gemini today; explain() is the
-│   │                                 on-device seam for flutter_gemma
+│   ├── ai_service.dart               explain() tries on-device first, falls
+│   │                                 back to cloud Gemini on failure/timeout
 │   ├── gemini_api_client.dart        bounded authenticated Gemini REST client
-│   ├── on_device_llm_service.dart    stub — returns null (cloud fallback)
+│   ├── on_device_llm_service.dart    flutter_gemma / Qwen3 0.6B, not yet
+│   │                                 device-verified
 │   ├── speech_config.dart            single source for TTS rate/pitch/language
 │   ├── hardware_keys.dart            volume-rocker EventChannel + repeat buffer
 │   ├── emergency_service.dart        countdown, cancel, location, dialling
 │   ├── sms_service.dart / sms_classifier.dart   offline SMS triage (classifier is pure)
 │   ├── gps_service.dart              high-accuracy location + reverse geocode
 │   ├── config_service.dart           loads assets/config/*.json
-│   ├── localization_service.dart     en / ta strings (ta kept in build, not demoed)
+│   ├── localization_service.dart     English strings (en.json)
 │   ├── offline_cache_service.dart    response cache
 │   └── browsing_service.dart         DuckDuckGo scrape (Explore augmentation)
 ├── widgets/debug_overlay.dart

@@ -33,7 +33,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _largeText = false;
   bool _accessibilityMode = false;
   bool _debugOverlay = false;
-  String _locale = 'en';
   String? _emergencyContact;
   Map<String, dynamic>? _cacheStats;
   bool _loading = true;
@@ -63,7 +62,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _highContrast = _configService.appConfig.features.highContrast;
       _largeText = _configService.appConfig.features.largeText;
       _accessibilityMode = _configService.appConfig.features.accessibilityMode;
-      _locale = _localization.currentLocale;
       _loading = false;
     });
     final contact = await EmergencyService.getContact();
@@ -148,26 +146,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(_locale == 'ta' ? 'அவசர தொடர்பு' : 'Emergency contact'),
+        title: const Text('Emergency contact'),
         content: TextField(
           controller: controller,
           keyboardType: TextInputType.phone,
           autofocus: true,
-          decoration: InputDecoration(
+          decoration: const InputDecoration(
             hintText: '+91…',
-            helperText: _locale == 'ta'
-                ? 'நம்பகமான நபரின் எண். அவசர சேவைகள் அல்ல.'
-                : 'A person you trust — not emergency services.',
+            helperText: 'A person you trust — not emergency services.',
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(_locale == 'ta' ? 'ரத்து' : 'Cancel'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: Text(_locale == 'ta' ? 'சேமி' : 'Save'),
+            child: const Text('Save'),
           ),
         ],
       ),
@@ -219,11 +215,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isTamil = _locale == 'ta';
-    
     return Scaffold(
       appBar: AppBar(
-        title: Text(isTamil ? 'அமைப்புகள்' : 'Settings'),
+        title: const Text('Settings'),
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
       ),
@@ -232,7 +226,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                _buildSection(isTamil ? 'AI மாதிரி' : 'AI Model', [
+                _buildSection('AI Model', [
                   // On-Device LLM and Web Browsing toggles removed: neither is
                   // wired (on_device_llm_service is a stub; web browsing has no
                   // working destination). Re-add when they actually do something.
@@ -251,11 +245,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     leading: const Icon(Icons.storage),
                     trailing: TextButton(
                       onPressed: _clearCache,
-                      child: Text(isTamil ? 'தீர்ப்பு' : 'Clear Cache'),
+                      child: const Text('Clear Cache'),
                     ),
                   ),
                 ]),
-                _buildSection(isTamil ? 'குரல் உதவியாளர்' : 'Voice Assistant', [
+                _buildSection('Voice Assistant', [
                   _buildSwitchTile(
                     title: _localization.tr('voice_assistant'),
                     subtitle: _localization.tr('voice_assistant_desc'),
@@ -264,7 +258,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     leading: Icon(_voiceAssistantEnabled ? Icons.mic : Icons.mic_none, color: _voiceAssistantEnabled ? Colors.green : Colors.grey),
                     trailing: TextButton(
                       onPressed: _testVoiceAssistant,
-                      child: Text(isTamil ? 'சோதி' : 'Test'),
+                      child: const Text('Test'),
                     ),
                   ),
                   _buildSwitchTile(
@@ -319,7 +313,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     leading: Icon(_accessibilityMode ? Icons.accessibility : Icons.accessibility_outlined, color: _accessibilityMode ? Colors.green : Colors.grey),
                   ),
                 ]),
-                _buildSection(isTamil ? 'அம்சங்கள்' : 'Features', [
+                _buildSection('Features', [
                   _buildSwitchTile(
                     title: 'GPS Enabled',
                     subtitle: 'Location context for AI prompts',
@@ -330,16 +324,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ListTile(
                     leading: Icon(Icons.emergency_share,
                         color: _emergencyContact == null ? Colors.grey : Colors.red),
-                    title: Text(isTamil ? 'அவசர தொடர்பு' : 'Emergency contact'),
+                    title: const Text('Emergency contact'),
                     subtitle: Text(_emergencyContact ??
-                        (isTamil
-                            ? 'அமைக்கப்படவில்லை — நீண்ட அழுத்தம் அழைக்கும்'
-                            : 'Not set — long-press the camera to call')),
+                        'Not set — long-press the camera to call'),
                     onTap: _setEmergencyContact,
                     trailing: const Icon(Icons.edit, color: Colors.blue),
                   ),
                 ]),
-                _buildSection(isTamil ? 'அதிகமொழி' : 'Advanced', [
+                _buildSection('Advanced', [
                   _buildSwitchTile(
                     title: 'Debug Overlay',
                     subtitle: 'FPS, GPS, Cache, Network stats (double-tap to toggle)',
@@ -348,7 +340,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     leading: Icon(_debugOverlay ? Icons.bug_report : Icons.bug_report_outlined, color: _debugOverlay ? Colors.red : Colors.grey),
                   ),
                 ]),
-                _buildSection(isTamil ? 'உதவி & கட்டளைகள்' : 'Help & Commands', [
+                _buildSection('Help & Commands', [
                   ListTile(
                     leading: const Icon(Icons.school_outlined),
                     title: const Text('How to use Logic Legends'),
@@ -371,16 +363,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onTap: () => _showCommandsDialog(),
                   ),
                 ]),
-                _buildSection(isTamil ? 'பற்றி' : 'About', [
+                _buildSection('About', [
                   ListTile(
                     leading: const Icon(Icons.info_outline),
-                    title: Text(isTamil ? 'பதிப்பு' : 'Version'),
+                    title: const Text('Version'),
                     subtitle: Text('${_configService.appConfig.app.version} (${_configService.appConfig.app.build})'),
                   ),
                   ListTile(
                     leading: const Icon(Icons.code),
-                    title: Text(isTamil ? 'ஐகூ ஹேக்கதான் 2026 - சென்னை' : 'iQOO Hackathon 2026 - Chennai'),
-                    subtitle: Text(isTamil ? 'தொலைநிலை-முதலமையான AI உதவி' : 'Phone-first AI Assistant'),
+                    title: const Text('iQOO City Battles 2026 - Chennai'),
+                    subtitle: const Text('Phone-first AI Assistant'),
                   ),
                 ]),
               ],

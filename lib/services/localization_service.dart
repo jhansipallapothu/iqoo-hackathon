@@ -6,15 +6,12 @@ class LocalizationService {
   factory LocalizationService() => _instance;
   LocalizationService._internal();
 
-  // English-only build. The Tamil string branches scattered through the app are
-  // dead code until a proper l10n pass — isTamil is hard-wired false so they
-  // never execute. Do not re-enable without finishing the Tamil translations.
+  // English-only build.
   Map<String, String> _strings = {};
   final String _currentLocale = 'en';
   bool _initialized = false;
 
   String get currentLocale => _currentLocale;
-  bool get isTamil => false;
   bool get initialized => _initialized;
 
   Future<void> initialize() async {
@@ -33,8 +30,6 @@ class LocalizationService {
     }
   }
 
-  // No-op: this build ships English only.
-  Future<void> setLocale(String locale) async {}
 
   String tr(String key, {Map<String, String>? params}) {
     String result = _strings[key] ?? key;

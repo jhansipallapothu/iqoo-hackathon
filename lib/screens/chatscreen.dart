@@ -320,8 +320,6 @@ class _ChatscreenState extends State<Chatscreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isTamil = _localization.isTamil;
-
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
@@ -345,7 +343,7 @@ class _ChatscreenState extends State<Chatscreen> {
       body: Stack(
         children: [
           _buildUI(),
-          if (_listening) _buildListeningOverlay(isTamil),
+          if (_listening) _buildListeningOverlay(),
         ],
       ),
     );
@@ -353,14 +351,12 @@ class _ChatscreenState extends State<Chatscreen> {
 
   /// Full-screen, unmistakable "I'm listening" state — a small mic-icon swap in
   /// the input row is not enough for a low-vision user. Tap anywhere to stop.
-  Widget _buildListeningOverlay(bool isTamil) {
+  Widget _buildListeningOverlay() {
     return Positioned.fill(
       child: Semantics(
         liveRegion: true,
         button: true,
-        label: isTamil
-            ? 'கேட்கிறது. நிறுத்த தட்டவும்.'
-            : 'Listening. Tap to stop.',
+        label: 'Listening. Tap to stop.',
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: _toggleVoiceMode,
@@ -373,7 +369,7 @@ class _ChatscreenState extends State<Chatscreen> {
                 const Icon(Icons.mic, color: Colors.white, size: 96),
                 const SizedBox(height: 24),
                 Text(
-                  isTamil ? 'கேட்கிறது…' : 'Listening…',
+                  'Listening…',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 34,
@@ -382,7 +378,7 @@ class _ChatscreenState extends State<Chatscreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  isTamil ? 'நிறுத்த எங்கும் தட்டவும்' : 'Tap anywhere to stop',
+                  'Tap anywhere to stop',
                   style: const TextStyle(color: Colors.white70, fontSize: 16),
                 ),
               ],
@@ -395,7 +391,6 @@ class _ChatscreenState extends State<Chatscreen> {
 
   void _showLocationDetails() {
     final data = widget.locationData!;
-    final isTamil = _localization.isTamil;
 
     showModalBottomSheet(
       context: context,
@@ -575,7 +570,6 @@ class _ChatscreenState extends State<Chatscreen> {
       final response = await _aiService.generateResponse(
         prompt: question,
         images: images,
-        isTamil: _localization.isTamil,
         enableBrowsing: true,
       );
 

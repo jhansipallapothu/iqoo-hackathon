@@ -3,7 +3,6 @@ import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' show parse;
 import 'package:html/dom.dart';
 import '../services/config_service.dart';
-import '../services/localization_service.dart';
 
 class SearchResult {
   final String title;
@@ -53,7 +52,6 @@ class BrowsingService {
   BrowsingService._internal();
 
   final ConfigService _configService = ConfigService();
-  final LocalizationService _localization = LocalizationService();
 
   static const String _duckDuckGoHtml = 'https://html.duckduckgo.com/html/';
   static const String _duckDuckGoLite = 'https://duckduckgo.com/html/';
@@ -80,7 +78,7 @@ class BrowsingService {
               'User-Agent':
                   'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
               'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-              'Accept-Language': _localization.isTamil ? 'ta,en;q=0.9' : 'en,ta;q=0.9',
+              'Accept-Language': 'en,ta;q=0.9',
             },
           )
           .timeout(Duration(seconds: _requestTimeout));
@@ -278,30 +276,22 @@ class BrowsingService {
 
   // Specialized searches for common use cases
   Future<String> searchFoodInfo(String foodName) async {
-    final query = _localization.isTamil
-        ? '$foodName உணவு தகவல் நீர்ப்பு الصحية القيمة calorías'
-        : '$foodName nutrition facts ingredients allergens calories';
+    final query = '$foodName nutrition facts ingredients allergens calories';
     return searchAndSummarize(query: query, maxResults: 3, maxPagesToFetch: 2);
   }
 
   Future<String> searchDocumentInfo(String docType) async {
-    final query = _localization.isTamil
-        ? '$docType ஆவண வடிவமைப்பு mẫu உதாரணம்'
-        : '$docType document format template example structure';
+    final query = '$docType document format template example structure';
     return searchAndSummarize(query: query, maxResults: 3, maxPagesToFetch: 2);
   }
 
   Future<String> searchLocalInfo(String location, String topic) async {
-    final query = _localization.isTamil
-        ? '$location $topic சமீபத்திய தகவல் விரيفigenceレビュー'
-        : '$location $topic near me reviews hours contact';
+    final query = '$location $topic near me reviews hours contact';
     return searchAndSummarize(query: query, maxResults: 3, maxPagesToFetch: 2);
   }
 
   Future<String> searchCurrentEvents(String topic) async {
-    final query = _localization.isTamil
-        ? '$topic சமீபத்திய செய்திகள் புதுப்பிப்புகள் 2024 2025'
-        : '$topic latest news updates 2024 2025';
+    final query = '$topic latest news updates 2024 2025';
     return searchAndSummarize(query: query, maxResults: 4, maxPagesToFetch: 3);
   }
 

@@ -52,6 +52,8 @@ dependencies:
   sensors_plus: ^4.0.2
   another_telephony: ^0.4.1
   google_mlkit_text_recognition: ^0.15.0
+  flutter_gemma: ^1.7.2
+  flutter_gemma_litertlm: ^1.6.2
 
 dev_dependencies:
   flutter_test:

@@ -75,7 +75,7 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
     await SpeechConfig.streaming(_tts);
 
     HapticFeedback.mediumImpact();
-    await _speak(_localization.isTamil ? 'படிக்கிறது' : 'Reading');
+    await _speak('Reading');
 
     // No response cache here: the previous key (imagePath.hashCode) was unique
     // per capture so it never hit, and a content hash of the JPEG janks the UI
@@ -103,7 +103,7 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
     }
 
     // Speak the raw text right away — this is the guaranteed answer.
-    final lead = _localization.isTamil ? 'உரை: ' : 'Text found. ';
+    const lead = 'Text found. ';
     await _speak(lead + _preview(_ocrText));
     _spokenFull = lead + _preview(_ocrText);
 
@@ -241,17 +241,16 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
       s.length > 240 ? '${s.substring(0, 240)}…' : s;
 
   String get _statusLabel {
-    final ta = _localization.isTamil;
     switch (_stage) {
       case _Stage.reading:
-        return ta ? 'படிக்கிறது…' : 'Reading…';
+        return 'Reading…';
       case _Stage.ocrDone:
       case _Stage.explaining:
-        return ta ? 'விளக்குகிறது…' : 'Explaining…';
+        return 'Explaining…';
       case _Stage.done:
-        return ta ? 'முடிந்தது' : 'Done';
+        return 'Done';
       case _Stage.failed:
-        return ta ? 'உரை மட்டும்' : 'Text only';
+        return 'Text only';
     }
   }
 
@@ -262,7 +261,7 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
         _stage == _Stage.explaining;
     return Scaffold(
       appBar: AppBar(
-        title: Text(_localization.isTamil ? 'படித்து விளக்கு' : 'Read & Explain'),
+        title: const Text('Read & Explain'),
         actions: [
           IconButton(
             icon: const Icon(Icons.replay),
@@ -357,18 +356,14 @@ class _ReadExplainScreenState extends State<ReadExplainScreen> {
               ],
               if (_stage != _Stage.reading) ...[
                 const Divider(height: 32),
-                Text(_localization.isTamil ? 'கண்டறியப்பட்ட உரை' : 'Detected text',
+                Text('Detected text',
                     style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 12,
                         fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
                 Text(
-                  _ocrText.isNotEmpty
-                      ? _ocrText
-                      : (_localization.isTamil
-                          ? 'உரை எதுவும் கண்டறியப்படவில்லை'
-                          : 'No readable text found'),
+                  _ocrText.isNotEmpty ? _ocrText : 'No readable text found',
                   style: TextStyle(
                       fontSize: 16,
                       height: 1.4,

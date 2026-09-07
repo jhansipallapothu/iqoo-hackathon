@@ -24,35 +24,29 @@ Map<String, dynamic> _$PromptsConfigToJson(PromptsConfig instance) =>
 
 ModePrompt _$ModePromptFromJson(Map<String, dynamic> json) => ModePrompt(
       en: json['en'] as String,
-      ta: json['ta'] as String,
     );
 
 Map<String, dynamic> _$ModePromptToJson(ModePrompt instance) =>
     <String, dynamic>{
       'en': instance.en,
-      'ta': instance.ta,
     };
 
 LocationContext _$LocationContextFromJson(Map<String, dynamic> json) =>
     LocationContext(
       en: json['en'] as String,
-      ta: json['ta'] as String,
     );
 
 Map<String, dynamic> _$LocationContextToJson(LocationContext instance) =>
     <String, dynamic>{
       'en': instance.en,
-      'ta': instance.ta,
     };
 
 OfflineFallback _$OfflineFallbackFromJson(Map<String, dynamic> json) =>
     OfflineFallback(
       en: json['en'] as String,
-      ta: json['ta'] as String,
     );
 
 Map<String, dynamic> _$OfflineFallbackToJson(OfflineFallback instance) =>
     <String, dynamic>{
       'en': instance.en,
-      'ta': instance.ta,
     };

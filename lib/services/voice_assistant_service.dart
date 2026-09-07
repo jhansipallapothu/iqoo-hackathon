@@ -456,10 +456,9 @@ class VoiceAssistantService {
     else if (accuracy <= 50) accuracyDesc = 'medium accuracy';
     else accuracyDesc = 'low accuracy';
 
-    final message = _localization.isTamil
-        ? 'நீங்கள் $address இல் உள்ளீர்கள். GPS துல்லியம்: ${accuracy.toStringAsFixed(1)} மீட்டர் ($accuracyDesc).'
-        : 'You are at $address. GPS accuracy: ${accuracy.toStringAsFixed(1)} meters ($accuracyDesc).';
-    
+    final message =
+        'You are at $address. GPS accuracy: ${accuracy.toStringAsFixed(1)} meters ($accuracyDesc).';
+
     _announce(message);
   }
 
@@ -501,33 +500,16 @@ class VoiceAssistantService {
       'web_browsing': 'Web Browsing',
       'offline_mode': 'Offline Mode',
     };
-    
-    const featureNamesTa = {
-      'gps_enabled': 'GPS',
-      'tts_enabled': 'எழுத்து-பேச்சு',
-      'vibration_feedback': 'நடை',
-      'web_browsing': 'வலை உலாவல்',
-      'offline_mode': 'ஆஃப்லைன் பதிவு',
-    };
-    
-    final name = _localization.isTamil ? (featureNamesTa[feature] ?? feature) : (featureNames[feature] ?? feature);
-    final action = shouldEnable ? (_localization.isTamil ? 'இயக்கப்பட்டது' : 'enabled') : (_localization.isTamil ? 'நிறுத்தப்பட்டது' : 'disabled');
-    
+
+    final name = featureNames[feature] ?? feature;
+    final action = shouldEnable ? 'enabled' : 'disabled';
+
     _configService.updateFeature(feature, shouldEnable);
     _announce('$name $action');
   }
 
   void _announceHelp() {
-    final helpText = _localization.isTamil
-        ? '''உதவி: "ஹேי 어시스턴트" என்று சொல்லுங்கள், பின்னர்:
-        - "புகைப்படம் எடு" அல்லது "சூழலை விவரி"
-        - "எழுத்து வாசி" அல்லது "உணவு அடையாளம்" 
-        - "ஆவணம் பகுப்பாய்வு" அல்லது "எங்கே இருக்கிறேன்"
-        - "தேடு [விஷயம்]" அல்லது "திசை [இடம்]"
-        - "கடைசி பதில் வாசி" அல்லது "மோடு மாற்று"
-        - "GPS இயக்கு" அல்லது "ஆஃப்லைன் চালு"
-        - "அவசரம்".Threading'''
-        : '''Help: Say "Hey Assistant" then:
+    const helpText = '''Help: Say "Hey Assistant" then:
         - "Take photo" or "Describe scene"
         - "Read text" or "Identify food"
         - "Analyze document" or "Where am I"
@@ -536,7 +518,7 @@ class VoiceAssistantService {
         - "Open WhatsApp" or "Open" any installed app
         - "Enable GPS" or "Turn on offline mode"
         - "Emergency" for SOS''';
-    
+
     _announce(helpText);
   }
 

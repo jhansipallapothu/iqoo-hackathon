@@ -5,9 +5,8 @@
     "build": "chennai-hackathon-2026"
   },
   "features": {
-    "on_device_llm": false,
+    "on_device_llm": true,
     "offline_mode": true,
-    "tamil_support": false,
     "gps_enabled": true,
     "tts_enabled": true,
     "vibration_feedback": true,
@@ -20,7 +19,6 @@
   },
   "voice_assistant": {
     "wake_word": "hey assistant",
-    "wake_word_ta": "ஹேಯ் அசிஸ்டண்ட்",
     "listen_timeout_seconds": 10,
     "pause_timeout_seconds": 3,
     "confidence_threshold": 0.7,

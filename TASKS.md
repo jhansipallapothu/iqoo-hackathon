@@ -51,14 +51,25 @@ context, `DEMO_FEATURES.md` for the demo script.
 
 ## P1 — Sept 4 on-device spike
 
-- [ ] Swap `ai_service.explain()` cloud Gemini → `flutter_gemma` + Gemma 2B.
-- [ ] Measure `.npu` / `.gpu` / `.cpu` latency, peak RAM with model + camera.
-- [ ] Check Qualcomm AI Hub for pre-optimised Snapdragon weights.
-- [ ] Keep the template fallback — if the model stalls, OCR must still answer.
+- [x] Swap `ai_service.explain()` cloud Gemini → `flutter_gemma` + on-device
+      model. Done 2026-09-07: wired `flutter_gemma`/`flutter_gemma_litertlm`
+      running **Qwen3 0.6B** (not Gemma — team chose the ungated public model
+      to avoid a Hugging Face token/license step during the live event).
+      `minSdkVersion` raised to 30 (plugin requirement). `flutter analyze` and
+      `flutter build apk --release` pass; not yet run on a physical device.
+- [ ] Device-verify on the loaner iQOO phone: confirm the ~586MB first-run
+      download completes, confirm `PreferredBackend.npu` actually engages
+      (check via debug overlay / logs, not just requested), measure latency
+      and peak RAM with model + camera both active.
+- [ ] Confirm airplane-mode behavior after the first successful download.
+- [ ] Keep the template fallback — if the model stalls, OCR must still answer
+      (unchanged: `AiService.explain()` falls through to cloud, and
+      `read_explain_screen.dart`'s template fallback is untouched by this
+      change).
 
 ## P2 — polish / cleanup
 
-- [ ] Physically strip the dead `isTamil ? … : …` ternaries (English-only now).
+- [x] Physically strip the dead `isTamil ? … : …` ternaries (English-only now). Done 2026-09-07: removed `isTamil`/Tamil strings across lib/, `tamil_support`/`wake_word_ta` from config models and JSON, and deleted `assets/l10n/ta.json`.
 - [ ] Delete or replace stale `HACKATHON_README.md`.
 - [ ] Move the GPS accuracy badge into the debug overlay only.
 - [ ] Separate the top-bar status icons (online/GPS) from the settings action.

@@ -1,7 +1,6 @@
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:another_telephony/telephony.dart' hide SmsType;
-import 'localization_service.dart';
 import 'config_service.dart';
 import 'sms_classifier.dart';
 import 'speech_config.dart';
@@ -18,7 +17,6 @@ class SmsService {
 
   final Telephony _telephony = Telephony.instance;
   final FlutterTts _tts = SpeechConfig.tts;
-  final LocalizationService _localization = LocalizationService();
   final ConfigService _config = ConfigService();
   bool _started = false;
 
@@ -43,25 +41,20 @@ class SmsService {
   void _announce(String sender, String body) {
     final r = classifySms(body);
     final who = _shortSender(sender);
-    final ta = _localization.isTamil;
     String line;
     switch (r.type) {
       case SmsType.otp:
         final spaced = r.code!.split('').join(' '); // digits, one by one
-        line = ta ? '$who இலிருந்து OTP: $spaced' : 'O T P from $who: $spaced';
+        line = 'O T P from $who: $spaced';
         break;
       case SmsType.spam:
-        line = ta
-            ? '$who இலிருந்து சாத்தியமான ஸ்பேம் செய்தி.'
-            : 'Likely spam message from $who.';
+        line = 'Likely spam message from $who.';
         break;
       case SmsType.transaction:
-        line = ta
-            ? '$who இலிருந்து பரிவர்த்தனை: $body'
-            : 'Transaction alert from $who: $body';
+        line = 'Transaction alert from $who: $body';
         break;
       case SmsType.normal:
-        line = ta ? '$who இலிருந்து: $body' : 'Message from $who: $body';
+        line = 'Message from $who: $body';
         break;
     }
     _tts.speak(line);

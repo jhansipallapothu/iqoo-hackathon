@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'gps_service.dart';
-import 'localization_service.dart';
 import 'speech_config.dart';
 
 /// Calls a user-nominated emergency contact, with a spoken countdown that can
@@ -23,7 +22,6 @@ class EmergencyService {
 
   final FlutterTts _tts = SpeechConfig.tts;
   final GPSService _gps = GPSService();
-  final LocalizationService _localization = LocalizationService();
 
   Timer? _timer;
   // True from the moment trigger() commits (contact found) until the call is
@@ -50,9 +48,7 @@ class EmergencyService {
     await SpeechConfig.apply(_tts);
 
     if (number == null || number.isEmpty) {
-      await _speak(_localization.isTamil
-          ? 'அவசர தொடர்பு எண் அமைக்கப்படவில்லை. அமைப்புகளில் சேர்க்கவும்.'
-          : 'No emergency contact is set. Add one in settings.');
+      await _speak('No emergency contact is set. Add one in settings.');
       return;
     }
 
@@ -67,10 +63,8 @@ class EmergencyService {
     await _speak(await _locationSentence());
     if (_cancelled) return;
 
-    await _speak(_localization.isTamil
-        ? 'அவசர அழைப்பு $remaining வினாடிகளில். நிறுத்த திரையைத் தட்டவும்.'
-        : 'Calling your emergency contact in $remaining seconds. '
-            'Tap the screen to stop.');
+    await _speak('Calling your emergency contact in $remaining seconds. '
+        'Tap the screen to stop.');
     if (_cancelled) return;
 
     _timer?.cancel();
@@ -97,9 +91,7 @@ class EmergencyService {
     _timer?.cancel();
     _timer = null;
     await _tts.stop();
-    await _speak(_localization.isTamil
-        ? 'அவசர அழைப்பு ரத்து செய்யப்பட்டது.'
-        : 'Emergency call cancelled.');
+    await _speak('Emergency call cancelled.');
   }
 
   Future<void> _placeCall(String number) async {
@@ -108,14 +100,10 @@ class EmergencyService {
       final placed =
           await _channel.invokeMethod<bool>('call', {'number': number});
       if (placed != true) {
-        await _speak(_localization.isTamil
-            ? 'டயலரைத் திறக்கிறது. அழைக்க பச்சை பொத்தானை அழுத்தவும்.'
-            : 'Opening the dialler. Press the green button to call.');
+        await _speak('Opening the dialler. Press the green button to call.');
       }
     } on PlatformException catch (_) {
-      await _speak(_localization.isTamil
-          ? 'அழைப்பு தோல்வியடைந்தது.'
-          : 'The call could not be placed.');
+      await _speak('The call could not be placed.');
     }
   }
 
@@ -123,16 +111,12 @@ class EmergencyService {
     final pos = _gps.getLastKnownPosition();
     final address = _gps.getLastKnownAddress();
     if (pos == null) {
-      return _localization.isTamil
-          ? 'அவசரம். இருப்பிடம் தெரியவில்லை.'
-          : 'Emergency. Location is not available.';
+      return 'Emergency. Location is not available.';
     }
     final lat = pos.latitude.toStringAsFixed(5);
     final lon = pos.longitude.toStringAsFixed(5);
-    return _localization.isTamil
-        ? 'அவசரம். நீங்கள் ${address ?? ''} இல் உள்ளீர்கள். அட்சரேகை $lat, தீர்க்கரேகை $lon.'
-        : 'Emergency. You are at ${address ?? 'an unknown address'}. '
-            'Latitude $lat, longitude $lon.';
+    return 'Emergency. You are at ${address ?? 'an unknown address'}. '
+        'Latitude $lat, longitude $lon.';
   }
 
   Future<void> _speak(String text) async {

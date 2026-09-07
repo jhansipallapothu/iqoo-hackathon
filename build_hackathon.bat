@@ -37,11 +37,6 @@ if not exist "assets\l10n\en.json" (
     exit /b 1
 )
 
-if not exist "assets\l10n\ta.json" (
-    echo ❌ Missing assets\l10n\ta.json
-    exit /b 1
-)
-
 echo ✅ Assets verified
 
 REM Build release APK for Android ARM64 (iQOO 15)
@@ -74,7 +69,7 @@ echo 1. Copy APK to laptop for Office Kit transfer
 echo 2. Install Office Kit on laptop: https://pc.vivoglobal.com/
 echo 3. Connect iQOO 15 via USB-C or WiFi
 echo 4. Drag APK to Office Kit → Install on phone
-echo 5. Test all 4 modes + GPS + Tamil + Offline
+echo 5. Test all 4 modes + GPS + Offline
 echo.
 echo 🎯 Hackathon ready!
 

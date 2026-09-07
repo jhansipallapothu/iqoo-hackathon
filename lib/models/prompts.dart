@@ -21,9 +21,8 @@ class PromptsConfig {
 @JsonSerializable()
 class ModePrompt {
   final String en;
-  final String ta;
 
-  ModePrompt({required this.en, required this.ta});
+  ModePrompt({required this.en});
 
   factory ModePrompt.fromJson(Map<String, dynamic> json) => _$ModePromptFromJson(json);
   Map<String, dynamic> toJson() => _$ModePromptToJson(this);
@@ -32,9 +31,8 @@ class ModePrompt {
 @JsonSerializable()
 class LocationContext {
   final String en;
-  final String ta;
 
-  LocationContext({required this.en, required this.ta});
+  LocationContext({required this.en});
 
   factory LocationContext.fromJson(Map<String, dynamic> json) => _$LocationContextFromJson(json);
   Map<String, dynamic> toJson() => _$LocationContextToJson(this);
@@ -43,9 +41,8 @@ class LocationContext {
 @JsonSerializable()
 class OfflineFallback {
   final String en;
-  final String ta;
 
-  OfflineFallback({required this.en, required this.ta});
+  OfflineFallback({required this.en});
 
   factory OfflineFallback.fromJson(Map<String, dynamic> json) => _$OfflineFallbackFromJson(json);
   Map<String, dynamic> toJson() => _$OfflineFallbackToJson(this);

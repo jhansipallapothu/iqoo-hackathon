@@ -104,9 +104,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final text = SpokenText.last;
     _tts.stop();
     if (text == null || text.isEmpty) {
-      _tts.speak(_localization.isTamil
-          ? 'மீண்டும் சொல்ல எதுவும் இல்லை.'
-          : 'Nothing to repeat yet.');
+      _tts.speak('Nothing to repeat yet.');
     } else {
       _tts.speak(text);
     }
@@ -325,10 +323,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (!_configService.appConfig.features.ttsEnabled) return;
     try {
       await SpeechConfig.apply(_tts);
-      final msg = _localization.isTamil
-          ? 'AI அனைவருக்கும் தயார். படம் எடுக்க எங்கும் தட்டவும்.'
-          : 'A I For All ready. Read and Explain mode. Point at printed text '
-              'and tap anywhere to read it. Swipe left or right to change mode.';
+      const msg = 'A I For All ready. Read and Explain mode. Point at printed text '
+          'and tap anywhere to read it. Swipe left or right to change mode.';
       SpokenText.last = msg;
       await _tts.speak(msg);
     } catch (_) {}
@@ -463,28 +459,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   static const _modeCount = 3;
 
   String _getModeName(int index) {
-    return _localization.isTamil
-        ? [
-            'ஆராய்வு',
-            'படித்து விளக்கு',
-            'குரல் அரட்டை'
-          ][index.clamp(0, _modeCount - 1)]
-        : [
-            'Explore',
-            'Read & Explain',
-            'Voice Chat'
-          ][index.clamp(0, _modeCount - 1)];
+    return ['Explore', 'Read & Explain', 'Voice Chat']
+        [index.clamp(0, _modeCount - 1)];
   }
 
-  String _modeInstruction(bool isTamil) {
+  String _modeInstruction() {
     if (_selectedIndex == 2) {
-      return isTamil
-          ? 'குரல் அரட்டையைத் தொடங்க தட்டவும்'
-          : 'Tap to start listening · swipe to switch';
+      return 'Tap to start listening · swipe to switch';
     }
-    return isTamil
-        ? 'தட்டவும் · ஸ்வைப் செய்து மாற்றவும்'
-        : 'Tap anywhere · swipe to switch';
+    return 'Tap anywhere · swipe to switch';
   }
 
   Future<void> _openVoiceChat() async {
@@ -593,14 +576,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   String _buildPrompt() {
-    final isTamil = _localization.isTamil;
     // Only Explore (index 0) uses this prompt now — Read & Explain runs its own
     // OCR + explanation pipeline and ignores it.
-    String prompt = _configService.getPrompt('explore', isTamil: isTamil);
+    String prompt = _configService.getPrompt('explore');
 
     if (_currentPosition != null) {
       final locationContext = _configService.getLocationContext(
-        isTamil: isTamil,
         address: _currentAddress ?? 'Unknown',
         lat: _currentPosition!.latitude,
         lon: _currentPosition!.longitude,
@@ -659,7 +640,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final isTamil = _localization.isTamil;
     final isOnline = _connectivityResult != ConnectivityResult.none;
     final textScale = _textScaleFactor;
 
@@ -675,16 +655,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           highContrast: _highContrast,
         ),
         child: Semantics(
-          label: isTamil
-              ? 'Logic Legends मुख் ஸ்க்ரீன்'
-              : 'Logic Legends Main Screen',
+          label: 'Logic Legends Main Screen',
           // No bottom bar, no FAB: the whole preview is the shutter (tap), and a
           // horizontal swipe toggles the two modes. Nothing to find by sight.
           child: Scaffold(
-            appBar: _buildAppBar(isTamil, isOnline),
+            appBar: _buildAppBar(isOnline),
             body: Stack(
               children: [
-                _buildBody(isTamil, isOnline),
+                _buildBody(isOnline),
                 if (_showOnboarding) _buildOnboardingOverlay(),
               ],
             ),
@@ -694,7 +672,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(bool isTamil, bool isOnline) {
+  PreferredSizeWidget _buildAppBar(bool isOnline) {
     return AppBar(
       automaticallyImplyLeading: false,
       toolbarHeight: 72,
@@ -705,7 +683,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         header: true,
         liveRegion: true,
         label:
-            '${_getModeName(_selectedIndex)} mode. ${_modeInstruction(isTamil)}',
+            '${_getModeName(_selectedIndex)} mode. ${_modeInstruction()}',
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -722,7 +700,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
             ),
             Text(
-              _modeInstruction(isTamil),
+              _modeInstruction(),
               style: const TextStyle(color: Colors.white70, fontSize: 12),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -734,7 +712,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       actions: [
         _buildGPSIndicator(),
         _buildNetworkIndicator(isOnline),
-        _buildAccessibilityButton(isTamil),
+        _buildAccessibilityButton(),
         IconButton(
           icon: const Icon(Icons.mail_outline, color: Colors.blue),
           tooltip: 'Read my messages',
@@ -755,10 +733,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildAccessibilityButton(bool isTamil) {
+  Widget _buildAccessibilityButton() {
     return Semantics(
       button: true,
-      label: isTamil ? 'அணுகல் அமைப்புகள்' : 'Accessibility Settings',
+      label: 'Accessibility Settings',
       child: PopupMenuButton<String>(
         icon: Icon(Icons.accessibility_new,
             color: _highContrast || _largeText ? Colors.amber : Colors.grey),
@@ -792,7 +770,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         : Icons.check_box_outline_blank,
                     color: _highContrast ? Colors.green : null),
                 const SizedBox(width: 8),
-                Text(isTamil ? 'உயர் துவிர்ச்சி' : 'High Contrast'),
+                const Text('High Contrast'),
               ],
             ),
           ),
@@ -806,7 +784,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         : Icons.check_box_outline_blank,
                     color: _largeText ? Colors.green : null),
                 const SizedBox(width: 8),
-                Text(isTamil ? 'மேல் வலியான உரை' : 'Large Text'),
+                const Text('Large Text'),
               ],
             ),
           ),
@@ -817,7 +795,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 Icon(_voiceAssistantActive ? Icons.mic : Icons.mic_none,
                     color: _voiceAssistantActive ? Colors.green : null),
                 const SizedBox(width: 8),
-                Text(isTamil ? 'குரல் உதவியாளர்' : 'Voice Assistant'),
+                const Text('Voice Assistant'),
               ],
             ),
           ),
@@ -899,13 +877,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildBody(bool isTamil, bool isOnline) {
+  Widget _buildBody(bool isOnline) {
     if (!_initialized) {
       return const Center(child: CircularProgressIndicator());
     }
 
     if (_showCameraError) {
-      return _buildCameraErrorView(isTamil);
+      return _buildCameraErrorView();
     }
 
     if (!_isCameraInitialized) {
@@ -930,16 +908,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         // Double-tap is reserved for the debug overlay, so use single tap.
         Semantics(
           button: true,
-          label: isTamil
-              ? 'படம் எடுக்க எங்கும் தட்டவும்'
-              : (_selectedIndex == 2
-                  ? 'Tap anywhere to start Voice Chat'
-                  : 'Tap anywhere to take a photo'),
-          hint: isTamil
-              ? 'அவசரத்திற்கு நீண்ட நேரம் அழுத்தவும். ஸ்வைப் செய்து மோடு மாற்றவும்.'
-              : (_selectedIndex == 1
-                  ? 'Double-tap to ask a question first. Long-press for emergency. Swipe to change mode.'
-                  : 'Long-press for emergency. Swipe to change mode.'),
+          label: _selectedIndex == 2
+              ? 'Tap anywhere to start Voice Chat'
+              : 'Tap anywhere to take a photo',
+          hint: _selectedIndex == 1
+              ? 'Double-tap to ask a question first. Long-press for emergency. Swipe to change mode.'
+              : 'Long-press for emergency. Swipe to change mode.',
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () {
@@ -976,11 +950,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
         _buildGPSOverlay(),
         if (!_isProcessing && _emergencyCountdown == null)
-          _buildTapAffordance(isTamil),
-        if (!isOnline) _buildOfflineBanner(isTamil),
-        if (_isProcessing) _buildProcessingOverlay(isTamil),
-        _buildVoiceAssistantOverlay(isTamil),
-        if (_emergencyCountdown != null) _buildEmergencyOverlay(isTamil),
+          _buildTapAffordance(),
+        if (!isOnline) _buildOfflineBanner(),
+        if (_isProcessing) _buildProcessingOverlay(),
+        _buildVoiceAssistantOverlay(),
+        if (_emergencyCountdown != null) _buildEmergencyOverlay(),
       ],
     );
   }
@@ -988,7 +962,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// Big, high-contrast "what do I do here" cue on the preview. Decorative —
   /// IgnorePointer lets the tap fall through to the shutter behind it, and the
   /// parent GestureDetector already carries the Semantics.
-  Widget _buildTapAffordance(bool isTamil) {
+  Widget _buildTapAffordance() {
     return Positioned(
       left: 0,
       right: 0,
@@ -1007,12 +981,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ),
                 child: Text(
                   _selectedIndex == 0
-                      ? (isTamil ? 'விவரிக்க தட்டவும்' : 'TAP TO DESCRIBE')
+                      ? 'TAP TO DESCRIBE'
                       : _selectedIndex == 1
-                          ? (isTamil ? 'படிக்க தட்டவும்' : 'TAP TO READ')
-                          : (isTamil
-                              ? 'குரல் அரட்டைக்கு தட்டவும்'
-                              : 'TAP TO START VOICE CHAT'),
+                          ? 'TAP TO READ'
+                          : 'TAP TO START VOICE CHAT',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 26,
@@ -1030,9 +1002,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  isTamil
-                      ? 'மோடு மாற்ற ஸ்வைப் செய்யவும்'
-                      : 'swipe  ←  →  to switch mode',
+                  'swipe  ←  →  to switch mode',
                   style: const TextStyle(color: Colors.white, fontSize: 14),
                 ),
               ),
@@ -1121,14 +1091,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildEmergencyOverlay(bool isTamil) {
+  Widget _buildEmergencyOverlay() {
     return Positioned.fill(
       child: Semantics(
         liveRegion: true,
         button: true,
-        label: isTamil
-            ? 'அவசர அழைப்பு $_emergencyCountdown வினாடிகளில். ரத்து செய்ய தட்டவும்.'
-            : 'Emergency call in $_emergencyCountdown seconds. Tap to cancel.',
+        label: 'Emergency call in $_emergencyCountdown seconds. Tap to cancel.',
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: _cancelEmergency,
@@ -1149,9 +1117,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 32),
                   child: Text(
-                    isTamil
-                        ? 'அவசர தொடர்பை அழைக்கிறது.\nரத்து செய்ய எங்கும் தட்டவும்.'
-                        : 'Calling your emergency contact.\nTap anywhere to cancel.',
+                    'Calling your emergency contact.\nTap anywhere to cancel.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white,
@@ -1168,7 +1134,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildVoiceAssistantOverlay(bool isTamil) {
+  Widget _buildVoiceAssistantOverlay() {
     if (!_voiceAssistantActive) return const SizedBox.shrink();
 
     return Positioned(
@@ -1177,8 +1143,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       right: 16,
       child: Semantics(
         liveRegion: true,
-        label:
-            isTamil ? 'குரல் உதவியாளர் செயலாகிறது' : 'Voice Assistant Active',
+        label: 'Voice Assistant Active',
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -1197,9 +1162,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     child: Text(
                       _voiceStatus.isNotEmpty
                           ? _voiceStatus
-                          : (isTamil
-                              ? 'குரல் உதவியாளர் செயலாகிறது...'
-                              : 'Voice Assistant Active...'),
+                          : 'Voice Assistant Active...',
                       style: TextStyle(
                         color: Colors.greenAccent,
                         fontSize: 14 * _textScaleFactor,
@@ -1241,11 +1204,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildVoiceCommandHint(String label, IconData icon) {
-    final isTamil = _localization.isTamil;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Tooltip(
-        message: isTamil ? 'குரல் கட்டளை: "$label"' : 'Voice command: "$label"',
+        message: 'Voice command: "$label"',
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1263,14 +1225,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildOfflineBanner(bool isTamil) {
+  Widget _buildOfflineBanner() {
     return Positioned(
       top: 0,
       left: 0,
       right: 0,
       child: Semantics(
         liveRegion: true,
-        label: isTamil ? 'ஆஃப்லைன் பதிவு செயல்படுகிறது' : 'Offline Mode Active',
+        label: 'Offline Mode Active',
         child: Container(
           color: Colors.orange[800],
           padding: const EdgeInsets.symmetric(vertical: 8),
@@ -1280,9 +1242,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               const Icon(Icons.wifi_off, color: Colors.white, size: 16),
               const SizedBox(width: 8),
               Text(
-                isTamil
-                    ? 'ஆஃப்லைன் பதிவு - சேமிக்கப்பட்ட பதில்கள் காட்டுகிறது'
-                    : 'Offline Mode - Showing cached responses',
+                'Offline Mode - Showing cached responses',
                 style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
@@ -1295,10 +1255,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildProcessingOverlay(bool isTamil) {
+  Widget _buildProcessingOverlay() {
     return Semantics(
       liveRegion: true,
-      label: isTamil ? 'செயலாக்குகிறது...' : 'Processing...',
+      label: 'Processing...',
       child: Container(
         color: Colors.black.withOpacity(0.5),
         child: Center(
@@ -1372,8 +1332,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildGPSBottomSheet() {
-    final isTamil = _localization.isTamil;
-
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -1481,7 +1439,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildCameraErrorView(bool isTamil) {
+  Widget _buildCameraErrorView() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

@@ -25,7 +25,7 @@ class ConfigService {
   }
 
   static const _featureKeys = [
-    'on_device_llm', 'offline_mode', 'tamil_support', 'gps_enabled',
+    'on_device_llm', 'offline_mode', 'gps_enabled',
     'tts_enabled', 'vibration_feedback', 'web_browsing', 'voice_assistant',
     'shake_wake_word', 'high_contrast', 'large_text', 'accessibility_mode',
   ];
@@ -52,15 +52,14 @@ class ConfigService {
     }
   }
 
-  String getPrompt(String mode, {required bool isTamil}) {
+  String getPrompt(String mode) {
     final modePrompt = _promptsConfig!.modes[mode];
     if (modePrompt == null) return _promptsConfig!.modes['explore']!.en;
-    return isTamil ? modePrompt.ta : modePrompt.en;
+    return modePrompt.en;
   }
 
-  String getLocationContext({required bool isTamil, required String address, required double lat, required double lon, required double accuracy}) {
-    final context = _promptsConfig!.location_context;
-    final template = isTamil ? context.ta : context.en;
+  String getLocationContext({required String address, required double lat, required double lon, required double accuracy}) {
+    final template = _promptsConfig!.location_context.en;
     return template
         .replaceAll('{address}', address)
         .replaceAll('{lat}', lat.toStringAsFixed(6))
@@ -68,8 +67,8 @@ class ConfigService {
         .replaceAll('{accuracy}', accuracy.toStringAsFixed(1));
   }
 
-  String getOfflineFallback({required bool isTamil}) {
-    return isTamil ? _promptsConfig!.offline_fallback.ta : _promptsConfig!.offline_fallback.en;
+  String getOfflineFallback() {
+    return _promptsConfig!.offline_fallback.en;
   }
 
   VoiceAssistantConfig get voiceAssistantConfig => _appConfig!.voice_assistant;
@@ -85,7 +84,6 @@ class ConfigService {
       features: Features(
         onDeviceLLM: feature == 'on_device_llm' ? enabled : features.onDeviceLLM,
         offlineMode: feature == 'offline_mode' ? enabled : features.offlineMode,
-        tamilSupport: feature == 'tamil_support' ? enabled : features.tamilSupport,
         gpsEnabled: feature == 'gps_enabled' ? enabled : features.gpsEnabled,
         ttsEnabled: feature == 'tts_enabled' ? enabled : features.ttsEnabled,
         vibrationFeedback: feature == 'vibration_feedback' ? enabled : features.vibrationFeedback,
@@ -112,8 +110,6 @@ class ConfigService {
         return features.onDeviceLLM;
       case 'offline_mode':
         return features.offlineMode;
-      case 'tamil_support':
-        return features.tamilSupport;
       case 'gps_enabled':
         return features.gpsEnabled;
       case 'tts_enabled':

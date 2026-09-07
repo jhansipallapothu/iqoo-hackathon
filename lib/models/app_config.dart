@@ -47,10 +47,7 @@ class Features {
   
   @JsonKey(name: 'offline_mode')
   final bool offlineMode;
-  
-  @JsonKey(name: 'tamil_support')
-  final bool tamilSupport;
-  
+
   @JsonKey(name: 'gps_enabled')
   final bool gpsEnabled;
   
@@ -81,7 +78,6 @@ class Features {
   Features({
     required this.onDeviceLLM,
     required this.offlineMode,
-    required this.tamilSupport,
     required this.gpsEnabled,
     required this.ttsEnabled,
     required this.vibrationFeedback,
@@ -101,10 +97,7 @@ class Features {
 class VoiceAssistantConfig {
   @JsonKey(name: 'wake_word')
   final String wakeWord;
-  
-  @JsonKey(name: 'wake_word_ta')
-  final String wakeWordTa;
-  
+
   @JsonKey(name: 'listen_timeout_seconds')
   final int listenTimeoutSeconds;
   
@@ -122,7 +115,6 @@ class VoiceAssistantConfig {
 
   VoiceAssistantConfig({
     required this.wakeWord,
-    required this.wakeWordTa,
     required this.listenTimeoutSeconds,
     required this.pauseTimeoutSeconds,
     required this.confidenceThreshold,

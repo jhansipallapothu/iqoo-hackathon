@@ -41,7 +41,6 @@ Map<String, dynamic> _$AppInfoToJson(AppInfo instance) => <String, dynamic>{
 Features _$FeaturesFromJson(Map<String, dynamic> json) => Features(
       onDeviceLLM: json['on_device_llm'] as bool,
       offlineMode: json['offline_mode'] as bool,
-      tamilSupport: json['tamil_support'] as bool,
       gpsEnabled: json['gps_enabled'] as bool,
       ttsEnabled: json['tts_enabled'] as bool,
       vibrationFeedback: json['vibration_feedback'] as bool,
@@ -56,7 +55,6 @@ Features _$FeaturesFromJson(Map<String, dynamic> json) => Features(
 Map<String, dynamic> _$FeaturesToJson(Features instance) => <String, dynamic>{
       'on_device_llm': instance.onDeviceLLM,
       'offline_mode': instance.offlineMode,
-      'tamil_support': instance.tamilSupport,
       'gps_enabled': instance.gpsEnabled,
       'tts_enabled': instance.ttsEnabled,
       'vibration_feedback': instance.vibrationFeedback,
@@ -72,7 +70,6 @@ VoiceAssistantConfig _$VoiceAssistantConfigFromJson(
         Map<String, dynamic> json) =>
     VoiceAssistantConfig(
       wakeWord: json['wake_word'] as String,
-      wakeWordTa: json['wake_word_ta'] as String,
       listenTimeoutSeconds: (json['listen_timeout_seconds'] as num).toInt(),
       pauseTimeoutSeconds: (json['pause_timeout_seconds'] as num).toInt(),
       confidenceThreshold:
@@ -85,7 +82,6 @@ Map<String, dynamic> _$VoiceAssistantConfigToJson(
         VoiceAssistantConfig instance) =>
     <String, dynamic>{
       'wake_word': instance.wakeWord,
-      'wake_word_ta': instance.wakeWordTa,
       'listen_timeout_seconds': instance.listenTimeoutSeconds,
       'pause_timeout_seconds': instance.pauseTimeoutSeconds,
       'confidence_threshold': instance.confidenceThreshold,

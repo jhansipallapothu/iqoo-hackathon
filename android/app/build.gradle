@@ -20,7 +20,9 @@ android {
 
     defaultConfig {
         applicationId = "com.logiclegends.saarthi"
-        minSdkVersion = flutter.minSdkVersion
+        // flutter_gemma's LiteRT-LM inference engine requires API 30+; this
+        // raises the floor above Flutter's own default minSdk.
+        minSdkVersion = 30
         targetSdk = 34
         versionCode = flutter.versionCode
         versionName = flutter.versionName

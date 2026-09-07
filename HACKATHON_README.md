@@ -1,72 +1,205 @@
-﻿> Historical plan/context: consult PROJECT.md for current verification.
-> Offline, accessibility, latency, and device claims below are not current
-> acceptance evidence. Follow AGENTS.md safety rules for all new work.
+> Historical plan/context: consult PROJECT.md for current verification.
+> Event rules below are transcribed from the official iQOO Hackathon 2026 / City
+> Battles rules page, shared 2026-09-07. Offline, accessibility, latency, and device
+> claims elsewhere in this file are not current acceptance evidence. Follow AGENTS.md
+> safety rules for all new work.
 
-# Logic Legends - iQOO Hackathon 2026 Chennai
+# Logic Legends — iQOO Hackathon 2026 · City Battles
 
-## 🎯 Project Overview
-**Phone-first AI Assistant** with on-device LLM (Gemma 2B), GPS context, web browsing, **voice activation**, and full accessibility for blind/visually impaired users. Built for iQOO 15 Snapdragon NPU.
+## Event rules (official rules page)
 
-## 🏆 Hackathon Track
-**Smart Living (Track #5)** - AI-powered solutions for everyday convenience
+### Judging — six dimensions, 100% total
+
+| Dimension | Weight | Scored by | What it measures |
+| --- | --- | --- | --- |
+| End product quality | 30% | Jury panel | Does it work, is it useful, would someone keep using it |
+| Novelty and impact | 20% | Jury panel | Originality and real-world impact |
+| Creative phone use | 15% | **HackTracker** (device data) | Camera, voice, **on-device AI in the build** |
+| Technical depth | 15% | Jury panel | Architecture, code quality, robustness, real use of the hardware |
+| Office Kit usage | 10% | **HackTracker** (device data) | Phone-and-laptop bridge use |
+| Demo and presentation | 10% | Jury panel | A compelling 3–5 minute pitch |
+
+**HackTracker** is pre-installed on the loaner phone and captures *counts and
+durations only* — no keystrokes, screenshots, or browsing content. It directly
+measures whether on-device AI and Office Kit were actually used, not just claimed.
+
+### Format
+- **Phone-first**: every entry must run and pitch on the iQOO phone. A local or
+  open-source model at the core "earns brownie points," with the phone in the loop
+  via Office Kit; on-device inference targets the Snapdragon NPU. Free AI credits are
+  provided for the weekend. Any stack qualifies (native Android, Flutter, React
+  Native, PWA) as long as it runs phone-first with a local/open-source model at the
+  core.
+- Each **City Battle is 30 hours, all-inclusive**: Saturday ~08:00 check-in through
+  Sunday ~17:00 awards. **Green Light** = both devices; **Red Light** = iQOO phone
+  only, via Office Kit.
+- **Two scored evaluation rounds** (Saturday evening, Sunday morning) feed a **Top 10
+  pitch** — this is not a single end-of-weekend demo.
+- **Grand Finale**: Bengaluru, **Oct 9–11, 2026**, 48 hours (Friday evening–Sunday
+  evening). Top 6 teams per city advance (3 student teams + 3 working-professional
+  teams); standout teams beyond the Top 6 can also earn Finale slots. Direct
+  registration for the Grand Finale (skipping a city battle) is also possible.
+
+### Devices
+- One flagship iQOO **loaner** phone per person, handed over at Saturday check-in
+  with **HackTracker pre-installed and Office Kit already paired**.
+- Devices remain iQOO property — stay in the venue/hacking zone, return before exit.
+
+### Tracks & buckets
+- **Seven tracks** in city battles; the Grand Finale runs **six** (drops FinTech &
+  Commerce, Smart Education, HealthTech; adds Mobility and Community App).
+- Students and working professionals both compete, but **a team cannot mix buckets**.
+- Tracks are broad domains, not fixed briefs; **Open Innovation** is the wildcard
+  track everywhere.
+- **Not yet known here:** which track this project is registered under. The earlier
+  internal pitch used "Smart Living," which is **not** one of the named tracks above
+  — confirm the actual registered track with the team before the pitch.
+
+### Build rules — original work only
+- **Code must be written during the event window** — no shipping a pre-built
+  product. Open-source libraries/frameworks are fine with attribution; carrying in a
+  finished app is not. **Organisers may verify a project was built inside the event
+  window.**
+- Submit the repo and demo assets on the **Reskilll platform** before the hard
+  cutoff — repos are **locked before the Top 10 pitches**. Late submission risks
+  scoring penalties or disqualification.
+- Cheating, plagiarism, or unfair practice is immediate disqualification.
+
+### Prizes & advancement
+- **₹40,00,000** total pool across city battles, the Grand Finale, and special track
+  awards.
+- Top 6 teams per city advance to the Grand Finale (3 per bucket); standouts beyond
+  Top 6 can also earn Finale slots.
+
+### IP & data
+- Teams **retain IP** on their submission. Participating grants iQOO/Reskilll a
+  non-exclusive, royalty-free right to review, evaluate, and showcase the work for
+  hackathon-related communications. Submissions are treated as confidential; any use
+  beyond showcase needs a separate written agreement.
 
 ---
 
-## 🚀 Key Features for Judges
+## Project alignment check (as of 2026-09-07)
 
-### 1. **On-Device LLM** (15% phone usage score)
-- Gemma 2B running on Snapdragon NPU via `tflite_flutter`
-- Zero cloud dependency for core features
-- Falls back to cloud Gemini if model not bundled
+| Rule / theme | Current project state | Risk |
+| --- | --- | --- |
+| On-device AI (15% Creative phone use, via HackTracker device data — not self-reported) | **Wired 2026-09-07**: `on_device_llm_service.dart` now runs Qwen3 0.6B locally via `flutter_gemma` (LiteRT-LM engine, `PreferredBackend.npu`, falls back to GPU/CPU automatically). `AiService.explain()` tries it first, falls back to cloud Gemini on failure/timeout. `flutter analyze` and a release build both pass. **Not yet run on a physical phone** — no device attached this session, so the download, actual NPU engagement, and latency are unverified. | Medium — the code path exists and should give HackTracker something real to count, but "implemented" isn't "device-verified." Confirm on the loaner iQOO phone before relying on this for judging. |
+| Camera + voice use (the other 2/3 of Creative phone use) | Real and working: camera capture (tap/Volume-Up), ML Kit OCR, TTS throughout, `speech_to_text` in Voice Chat, physical volume-key handling. | Low — this part is genuinely strong. |
+| Office Kit usage (10%, via HackTracker device data) | The phone-first APK build has no laptop runtime dependency, which is correct for Red Light — but HackTracker scores *actual* phone↔laptop bridge use during the event, so the team needs to actually exercise Office Kit (screen mirror / file transfer / remote control) during the build, not just be compatible with it. | Medium — a capability that's never exercised won't score. |
+| Track registration | Old pitch used "Smart Living," which isn't in the current track list (FinTech & Commerce, Smart Education, HealthTech, Mobility\*, Community App\*, Open Innovation, + others; \*Finale-only additions). | Unknown — confirm the actual registered track; this is an accessibility assistant, so HealthTech, Community App, or Open Innovation are the closest fits pending confirmation. |
+| Team size / bucket (solo or up to 3; student vs. professional, no mixing) | Not tracked in this repo. | Unknown — confirm with team. |
+| **Original work / built during the event window** | This repo already carries substantial architecture, docs, and prior commits. Organisers may verify build timing. | **Worth confirming explicitly with the team** — not a code issue, but a compliance one: be ready to account for what was built inside this event's actual 30-hour window versus earlier prep, since it's an explicit disqualification condition. |
+| Repo + demo submission on Reskilll platform, before the cutoff (locked pre-Top-10) | Not tracked here. | Action item — confirm submission is done ahead of the lock, separately from git commits to this repo. |
+| Accessibility impact narrative (feeds End product quality 30%, Novelty 20%) | Real, working differentiator: two-stage Read & Explain (OCR fast path + LLM explanation + template fallback), physical-key capture/repeat, emergency-contact calling, offline SMS scam triage. See README.md/PROJECT.md for the exact current status per feature. | Low, provided demo claims stay limited to what PROJECT.md marks Implemented/Device verified — AGENTS.md forbids claiming offline/accurate/verified without current evidence. |
+| Offline claims | Cache is real (7-day TTL, LRU), but the explanation step needs network today (cloud Gemini). "Offline" cannot be claimed to judges as a device-verified fact yet. | Medium |
 
-### 2. **🎙️ Voice Assistant & Wake Word** (NEW - Creative Phone Use)
-- **"Hey Assistant"** wake word activation (configurable)
-- **Shake-to-activate** for accessibility (accelerometer)
-- 25+ voice commands across all features
-- **Full Tamil + English** voice support
-- Continuous listening mode for hands-free operation
-
-### 3. **🌐 Web Browsing / Real-World Info** (NEW)
-- DuckDuckGo HTML scraping (no API key needed)
-- Auto-detects when real-time info needed (weather, prices, news, nutrition)
-- Specialized searches: food nutrition, documents, local places, current events
-- Injects live web context into AI prompts with source citations
-
-### 4. **GPS-Enhanced AI Prompts** (Creative phone use)
-- Sub-10m accuracy overlay on camera (green/yellow/orange/red)
-- Reverse geocoding for address context
-- Location automatically injected into every AI prompt
-- Live GPS bottom sheet with coordinates, altitude, speed, heading
-
-### 5. **♿ Full Accessibility for Blind Users** (NEW - High Impact)
-- **Voice-only navigation** - all features via voice commands
-- **TalkBack/VoiceOver compatible** - semantic labels, live regions
-- **High contrast mode** toggle
-- **Large text** (1.5x) toggle
-- **Screen reader announcements** for all state changes
-- **Shake gesture** for wake word toggle
-- **Vibration feedback** for all interactions
-
-### 6. **Offline-First Architecture** (Real-world utility)
-- Response caching with 7-day TTL, 50-entry LRU
-- Pre-loaded test images for demo
-- Works 100% offline after first run
-- Offline banner + cached response badges
-
-### 7. **Tamil Localization** (Local relevance)
-- Full UI in Tamil/English (80+ strings)
-- AI prompts in Tamil
-- Voice output in Tamil (TTS with `ta-IN` locale)
-- Runtime language switch
-
-### 8. **Office Kit Ready** (10% score)
-- Pre-built release APK for Red Light install
-- Config-driven prompts (no recompile needed)
-- Debug overlay for live metrics
+**Status as of 2026-09-07:** the on-device wiring described above is done in code
+(`flutter_gemma` + Qwen3 0.6B in `AiService.explain()`), analyzed clean, and builds a
+release APK. What's left is entirely device verification, not more coding: confirm
+the ~586MB first-run download completes on real venue wifi, confirm the NPU backend
+actually engages (vs. silently falling back to GPU/CPU), and measure latency/RAM with
+the camera also active. The fast OCR path and template fallback are untouched, so a
+stalled or failed on-device call still can't leave the user in silence.
 
 ---
 
-## 📱 Demo Flow (2 minutes)
+## Build for Event
+
+```bash
+# 1. Get dependencies
+flutter pub get
+
+# 2. Build release APK (for Office Kit install during Red Light)
+flutter build apk --release --target-platform android-arm64
+
+# 3. APK location: build/app/outputs/flutter-apk/app-release.apk
+```
+
+`constapi.dart` (Gemini API key) is gitignored — copy
+`lib/screens/constapi.dart.example` and paste a real key before building.
+
+---
+
+## Office Kit Workflow (Red Light)
+
+| Green Light (Laptop + phone) | Red Light (Phone only, via Office Kit) |
+| --- | --- |
+| `flutter build apk --release` | Test camera, GPS, AI, capture/repeat keys |
+| Drag APK → Office Kit → install | Demo rehearsal, hands mostly off the laptop |
+| Push test images/props to phone | Record demo video |
+| Edit `assets/config/app_config.json` / `prompts.json` for feature flags and prompt wording (bundled assets — requires a rebuild, not a live edit) | Toggle settings, verify accessibility behavior |
+
+---
+
+## Key files (current, as of 2026-09-05 commit)
+
+```
+assets/
+├── config/
+│   ├── app_config.json       # feature flags, prompt/model config
+│   └── prompts.json          # prompt templates per mode
+├── images/                   # demo/test images
+└── l10n/                     # en.json (supported); ta.json (kept, not demoed)
+
+lib/
+├── services/
+│   ├── ai_service.dart               # cloud Gemini today; explain() is the on-device seam
+│   ├── ocr_service.dart              # ML Kit on-device text recognition
+│   ├── read_explain_logic.dart       # pure classify/fallback/prompt logic, has a dart-run self-check
+│   ├── on_device_llm_service.dart    # stub — returns null (cloud fallback), P1 to wire flutter_gemma
+│   ├── gemini_api_client.dart        # bounded authenticated Gemini REST client
+│   ├── speech_config.dart            # single source for TTS rate/pitch/language
+│   ├── hardware_keys.dart            # volume-rocker EventChannel + repeat buffer
+│   ├── emergency_service.dart        # countdown, cancel, location, dialling
+│   ├── sms_service.dart / sms_classifier.dart   # offline SMS triage (classifier is pure)
+│   ├── gps_service.dart              # high-accuracy location + reverse geocode
+│   ├── config_service.dart           # loads assets/config/*.json
+│   ├── localization_service.dart     # en / ta strings (ta kept in build, not demoed)
+│   ├── offline_cache_service.dart    # response cache (7-day TTL, LRU)
+│   ├── browsing_service.dart         # DuckDuckGo scrape (Explore augmentation)
+│   ├── voice_assistant_service.dart  # voice command parsing/dispatch
+│   └── voice_chat_logic.dart         # Voice Chat turn-taking ("clear over") logic
+├── widgets/debug_overlay.dart        # double-tap: FPS, GPS, cache, network, model
+└── screens/
+    ├── homepage.dart                 # camera, gestures, routing, emergency overlay
+    ├── read_explain_screen.dart      # two-stage OCR + explanation coordinator
+    ├── chatscreen.dart               # Explore-mode scene description
+    └── settings_screen.dart          # toggles, emergency contact, wake word
+```
+
+There is no `assets/models/` directory and no bundled `.tflite` file in this repo —
+do not claim an on-device model is bundled until one actually is.
+
+---
+
+## Pre-event checklist
+
+- [ ] Confirm team roster and bucket (student / professional) against the rules above.
+- [ ] Decide whether to attempt the on-device model swap before the battle, or run
+      cloud Gemini and disclose that honestly in the demo (see AGENTS.md: never claim
+      offline/on-device unless true).
+- [ ] Set the Gemini API key in `lib/screens/constapi.dart` (from `.example`).
+- [ ] Build the release APK and test on the loaner iQOO phone.
+- [ ] Practice the Office Kit pairing flow (screen mirror, file transfer, remote
+      control) ahead of the Saturday 10:00 teach-in.
+- [ ] Prepare non-sensitive demo props (medicine strip, notice, bill) per AGENTS.md
+      safety rules — no real personal data.
+- [ ] Rehearse the failure branches, not just the happy path: model timeout →
+      Volume-Down repeat, permission denial, offline recognizer failure.
+- [ ] Pack: laptop, charger, power bank, USB-C cable.
+
+---
+
+## Earlier internal pitch draft (unverified, historical)
+
+The sections below were written before this project's actual feature status was
+tracked in PROJECT.md. Several described features (wake-word activation,
+shake-to-activate, 25+ voice commands, full Tamil voice support, a bundled Gemma
+TFLite model) are **not currently true of this codebase** — see the alignment table
+above and PROJECT.md's feature register for what is actually implemented and
+verified. Kept only for historical reference; do not quote this section to judges.
+
+### Original demo flow (2 minutes) — as originally drafted, not current
 
 ```
 1. Open app → Camera loads with GPS accuracy badge (green = ≤10m)
@@ -85,200 +218,23 @@
 14. Enable High Contrast + Large Text → Full accessibility demo
 ```
 
----
+For the current, real demo script use `VIDEO_DEMO_SCRIPT.md` and DEMO_SETUP.md
+instead.
 
-## 🎙️ Voice Commands Reference
+### Original judging-criteria guess — not organizer material
 
-| Category | Commands (EN) | Commands (TA) |
-|----------|---------------|---------------|
-| **Capture** | "Take photo", "Snap picture", "Capture image" | "புகைப்படம் எடு", "திரைப்படம் பிடி" |
-| **Describe** | "Describe scene", "What do you see", "What's around" | "சூழலை விவரி", "இங்கு என்ன உள்ளது" |
-| **Food** | "Identify food", "What's this food", "Nutrition info" | "உணவு அடையாளம்", "நீர்ப்பு தகவல்" |
-| **Text** | "Read text", "Scan text", "Extract writing" | "எழுத்து வாசி", "உரை அம்மா" |
-| **Document** | "Analyze document", "Read document", "Summarize paper" | "ஆவணம் பகுப்பாய்வு", "கத்து வாசி" |
-| **Location** | "Where am I", "My location", "Address" | "எங்கே இருக்கிறேன்", "என் இடம்" |
-| **Navigation** | "Navigate to [place]", "Directions to [place]" | "திசை [இடம்]", "मार்க் [இடம்]" |
-| **Web Search** | "Search [topic]", "Look up [topic]", "Latest news", "Weather" | "தேடு [விஷயம்]", "செய்தி", "வானிலை" |
-| **Response** | "Read last response", "Repeat answer", "Say again" | "கடைசி பதில் வாசி", "மறுபடியும் சொல்" |
-| **Modes** | "Switch to explore/food/text/document" | "மோடு மாற்று ஆராய்வு/உணவு/உரை/ஆவணம்" |
-| **Features** | "Enable GPS/TTS/Vibration/Browsing/Offline" | "GPS/பேச்சு/நடை/உலாவல்/ஆஃப்லைன் இயக்கு" |
-| **Settings** | "Open settings", "Show menu" | "அமைப்பு திற", "மெனู காட்டு" |
-| **Help** | "Help", "What can you do", "Commands" | "உதவி", "நீங்கள் என்ன செய்யலாம்" |
-| **Emergency** | "Emergency", "Help me", "SOS", "Danger" | "அவசரம்", "உதவி", "SOS" |
+| Criteria (weight guessed) | Notes |
+| --- | --- |
+| End Product Quality | Unverified guess from an earlier draft, not from City Battles organizer material. |
+| Novelty & Impact | Same. |
+| Creative Phone Use | Same. |
+| Technical Depth | Same. |
+| Office Kit Usage | Same. |
+| Demo & Presentation | Same. |
 
 ---
 
-## 🔧 Build for Event
-
-```bash
-# 1. Get dependencies
-flutter pub get
-
-# 2. Generate JSON serialization code
-flutter pub run build_runner build --delete-conflicting-outputs
-
-# 3. Build release APK (for Office Kit install during Red Light)
-flutter build apk --release --target-platform android-arm64
-
-# 4. APK location: build/app/outputs/flutter-apk/app-release.apk
-```
-
----
-
-## 📦 Office Kit Workflow (Red Light)
-
-| Green Light (Laptop) | Red Light (Phone Only) |
-|---------------------|------------------------|
-| `flutter build apk --release` | Test camera + GPS + AI + Voice |
-| Drag APK → Office Kit → Install | Voice commands for all features |
-| Push test images to phone | Demo rehearsal (hands-free) |
-| Configure prompts via `assets/config/prompts.json` | Record demo video |
-| Edit `app_config.json` for feature flags | Toggle accessibility modes |
-
----
-
-## 📁 Key Files for Hackathon
-
-```
-assets/
-├── config/
-│   ├── app_config.json       # Feature flags, model config, GPS thresholds, accessibility
-│   └── prompts.json          # AI prompts per mode (EN/TA)
-├── l10n/
-│   ├── en.json               # English strings (100+)
-│   └── ta.json               # Tamil strings (100+)
-└── models/
-    └── gemma-2b-it-q4.tflite # On-device model (add before event)
-
-lib/
-├── services/
-│   ├── ai_service.dart               # Unified on-device + cloud AI + web browsing
-│   ├── browsing_service.dart         # NEW: DuckDuckGo scraping + page extraction
-│   ├── config_service.dart           # Loads app_config.json + prompts.json
-│   ├── localization_service.dart     # EN/TA with SharedPreferences
-│   ├── on_device_llm_service.dart    # TFLite Gemma 2B inference
-│   ├── offline_cache_service.dart    # Response caching
-│   ├── gps_service.dart              # High-accuracy GPS + geocoding
-│   └── voice_assistant_service.dart  # NEW: Wake word, commands, TTS, shake
-├── widgets/
-│   └── debug_overlay.dart            # Double-tap: FPS, GPS, cache, network, model
-└── screens/
-    ├── homepage.dart                 # Camera + GPS + Voice + Accessibility
-    ├── chatscreen.dart               # DashChat + AI + cache + TTS + Voice
-    └── settings_screen.dart          # All feature toggles + accessibility
-```
-
----
-
-## ⚙️ Configuration (No Recompile - Edit via Office Kit)
-
-### `assets/config/app_config.json`
-```json
-{
-  "features": {
-    "on_device_llm": true,
-    "offline_mode": true,
-    "tamil_support": true,
-    "gps_enabled": true,
-    "tts_enabled": true,
-    "vibration_feedback": true,
-    "web_browsing": true
-  },
-  "gps": {
-    "accuracy_threshold_high": 10,
-    "accuracy_threshold_medium": 50
-  }
-}
-```
-
-### `assets/config/prompts.json`
-```json
-{
-  "modes": {
-    "explore": {
-      "en": "Describe this image in detail. What do you see?",
-      "ta": "இதை விவரமாக விவரிக்கவும். நீங்கள் என்ன দেখுகிறீர்கள்?"
-    },
-    "food": {
-      "en": "Identify this food item. List ingredients, allergens, and nutritional info.",
-      "ta": "இந்த உணவு பொருளை அடையாளம் காணுங்கள். கூறுகள், ஆலர்ஜிகள், ஊட்டச்சத்து தகவல்களை பட்டியலிடுங்கள்."
-    },
-    "text": {
-      "en": "Extract and read all text from this image. Preserve formatting.",
-      "ta": "இதிலிருந்து அனைத்து உரையையும் விசイして 読み取り、 வடிவமைப்பைப் பாதுகாத்து வைக்கவும்."
-    },
-    "document": {
-      "en": "Analyze this document. Summarize key information, dates, amounts, and action items.",
-      "ta": "இந்த ஆவணத்து�்த முக்கிய தகவல்கள், தேதிகள், தொகைகள், செயல் items まとめ してください。"
-    }
-  },
-  "location_context": {
-    "en": "Location context: {address} (GPS: {lat}, {lon}, accuracy: {accuracy}m)",
-    "ta": "இடம் சூழல்: {address} (GPS: {lat}, {lon}, துல்லியம்: {accuracy}m)"
-  }
-}
-```
-
----
-
-## 🎪 Pre-Event Checklist
-
-- [ ] Add Gemma 2B TFLite model to `assets/models/gemma-2b-it-q4.tflite`
-- [ ] Add test images to `assets/images/` (food, document, text, scene)
-- [ ] Set Gemini API key in `lib/screens/constapi.dart`
-- [ ] Build release APK and test on iQOO 15
-- [ ] Install Office Kit on laptop, practice mirror + install + remote control
-- [ ] **Test Voice Assistant**: Wake word, all 25+ commands, Tamil + English
-- [ ] **Test Accessibility**: TalkBack, High Contrast, Large Text, Shake gesture
-- [ ] **Test Web Browsing**: Search, nutrition, weather, local places
-- [ ] Prepare 3 Tamil demo phrases for voice
-- [ ] Pack: laptop, charger, power bank (20k mAh), USB-C cable
-
----
-
-## 🏁 Judging Criteria Mapping
-
-| Criteria (Weight) | How We Score |
-|-------------------|--------------|
-| **End Product Quality (30%)** | Camera+GPS+AI+Voice+Web working, polished UI, zero crashes, 4 modes |
-| **Novelty & Impact (20%)** | GPS-injected prompts, offline-first, Tamil, **voice assistant for blind**, **web browsing**, accessibility |
-| **Creative Phone Use (15%)** | Camera, GPS, NPU, **accelerometer (shake)**, **microphone (wake word)**, TTS, vibration, **web scraping** |
-| **Technical Depth (15%)** | TFLite inference, config-driven, cache, localization, **voice command parsing**, **HTML scraping**, semantic accessibility |
-| **Office Kit Usage (10%)** | APK install, remote control, file transfer, config edits logged |
-| **Demo & Presentation (10%)** | 2-min flow, **voice-only demo**, Tamil demo, offline demo, accessibility demo |
-
----
-
-## 🆘 Emergency Fallbacks
-
-| Failure | Fallback |
-|---------|----------|
-| Model not loading | Cloud Gemini API (auto) |
-| GPS denied | Manual location input |
-| Camera crash | Pre-loaded test images |
-| Network down | Cached responses |
-| TTS not working | Visual only |
-| Voice recognition fails | Touch fallback + visual commands |
-| Wake word not detected | Shake gesture + manual button |
-
----
-
-## ♿ Accessibility Compliance
-
-| Feature | Implementation |
-|---------|----------------|
-| **Screen Reader** | Semantic labels, live regions, headers, hints |
-| **Voice Control** | 25+ commands, wake word, continuous listening |
-| **High Contrast** | System-level toggle, Material 3 support |
-| **Large Text** | 1.5x scale factor, dynamic text scaling |
-| **Vibration** | Haptic feedback for all actions |
-| **Shake Gesture** | Accelerometer-based wake word toggle |
-| **TTS** | `ta-IN` / `en-IN` locales, interruptible |
-| **Focus Management** | Logical tab order, visible focus indicators |
-
----
-
-## 📞 Contact
-Built for iQOO Hackathon 2026 Chennai  
-Track: Smart Living  
-**Innovation**: Voice-first AI for blind users + Real-time web browsing + On-device LLM
+## Contact
+Built for iQOO City Battles 2026, Chennai battle
+**Innovation**: audio-first assistant for blind and low-vision users, built around a
+two-stage OCR + language-model pipeline.

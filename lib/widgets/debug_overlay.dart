@@ -181,7 +181,6 @@ class _DebugOverlayState extends State<DebugOverlay> with WidgetsBindingObserver
               _buildSection('CONFIG', [
                 _buildRow('On-Device LLM', _configService.appConfig.features.onDeviceLLM ? 'ON' : 'OFF'),
                 _buildRow('Offline Mode', _configService.appConfig.features.offlineMode ? 'ON' : 'OFF'),
-                _buildRow('Tamil Support', _configService.appConfig.features.tamilSupport ? 'ON' : 'OFF'),
                 _buildRow('GPS Enabled', _configService.appConfig.features.gpsEnabled ? 'ON' : 'OFF'),
                 _buildRow('TTS Enabled', _configService.appConfig.features.ttsEnabled ? 'ON' : 'OFF'),
               ]),
